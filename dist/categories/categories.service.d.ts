@@ -5,4 +5,6 @@ export declare class CategoriesService {
     constructor(categoryModel: Model<Category>);
     findAll(): Promise<Category[]>;
     create(name: string): Promise<Category>;
+    update(id: string, name: string): Promise<Category>;
+    delete(id: string): Promise<Category>;
 }

@@ -21,4 +21,29 @@ export class CategoriesService {
     }
     return category;
   }
+
+  async update(id: string, name: string): Promise<Category> {
+    const formattedName = name.trim();
+    const updated = await this.categoryModel.findByIdAndUpdate(
+      id,
+      { name: formattedName },
+      { new: true }
+    ).exec();
+    if (!updated) {
+      throw new Error("Category not found");
+    }
+    return updated;
+  }
+
+  async delete(id: string): Promise<Category> {
+    const deleted = await this.categoryModel.findByIdAndUpdate(
+      id,
+      { active: false },
+      { new: true }
+    ).exec();
+    if (!deleted) {
+      throw new Error("Category not found");
+    }
+    return deleted;
+  }
 }
