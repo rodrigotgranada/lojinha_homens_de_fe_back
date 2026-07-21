@@ -28,6 +28,7 @@ const sales_module_1 = require("./sales/sales.module");
 const events_module_1 = require("./events/events.module");
 const logs_module_1 = require("./logs/logs.module");
 const categories_module_1 = require("./categories/categories.module");
+const sync_module_1 = require("./sync/sync.module");
 let AppModule = class AppModule {
     connection;
     firebaseService;
@@ -156,9 +157,14 @@ exports.AppModule = AppModule = __decorate([
             }),
             mongoose_1.MongooseModule.forRootAsync({
                 imports: [config_1.ConfigModule],
-                useFactory: async (configService) => ({
-                    uri: configService.get("MONGODB_URI") || "mongodb://localhost:27017/lojinha",
-                }),
+                useFactory: async (configService) => {
+                    const useLocalDb = configService.get("USE_LOCAL_DB") === "true";
+                    const localUri = configService.get("MONGODB_URI_LOCAL") || "mongodb://localhost:27017/lojinha";
+                    const cloudUri = configService.get("MONGODB_URI_CLOUD") || configService.get("MONGODB_URI");
+                    return {
+                        uri: useLocalDb ? localUri : (cloudUri || localUri),
+                    };
+                },
                 inject: [config_1.ConfigService],
             }),
             firebase_module_1.FirebaseModule,
@@ -169,6 +175,7 @@ exports.AppModule = AppModule = __decorate([
             events_module_1.EventsModule,
             logs_module_1.LogsModule,
             categories_module_1.CategoriesModule,
+            sync_module_1.SyncModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

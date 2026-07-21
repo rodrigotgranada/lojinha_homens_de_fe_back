@@ -31,6 +31,12 @@ export class Sale extends Document {
 
   @Prop({ required: true, enum: ["PAGO", "PENDENTE", "CANCELADO"], default: "PAGO", index: true })
   status: string;
+
+  @Prop({ type: Boolean, default: false, index: true })
+  synced: boolean;
+
+  @Prop({ type: Date, required: false })
+  synchronizedAt?: Date;
 }
 
 export const SaleSchema = SchemaFactory.createForClass(Sale);

@@ -22,6 +22,8 @@ let User = class User extends mongoose_2.Document {
     role;
     createdBy;
     active;
+    synced;
+    synchronizedAt;
 };
 exports.User = User;
 __decorate([
@@ -60,6 +62,14 @@ __decorate([
     (0, mongoose_1.Prop)({ required: true, default: true }),
     __metadata("design:type", Boolean)
 ], User.prototype, "active", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: Boolean, default: false, index: true }),
+    __metadata("design:type", Boolean)
+], User.prototype, "synced", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: Date, required: false }),
+    __metadata("design:type", Date)
+], User.prototype, "synchronizedAt", void 0);
 exports.User = User = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], User);

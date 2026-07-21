@@ -39,6 +39,8 @@ let Sale = class Sale extends mongoose_2.Document {
     items;
     totalPrice;
     status;
+    synced;
+    synchronizedAt;
 };
 exports.Sale = Sale;
 __decorate([
@@ -61,6 +63,14 @@ __decorate([
     (0, mongoose_1.Prop)({ required: true, enum: ["PAGO", "PENDENTE", "CANCELADO"], default: "PAGO", index: true }),
     __metadata("design:type", String)
 ], Sale.prototype, "status", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: Boolean, default: false, index: true }),
+    __metadata("design:type", Boolean)
+], Sale.prototype, "synced", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: Date, required: false }),
+    __metadata("design:type", Date)
+], Sale.prototype, "synchronizedAt", void 0);
 exports.Sale = Sale = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], Sale);

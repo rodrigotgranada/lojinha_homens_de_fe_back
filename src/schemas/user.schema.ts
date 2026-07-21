@@ -29,6 +29,12 @@ export class User extends Document {
 
   @Prop({ required: true, default: true })
   active: boolean;
+
+  @Prop({ type: Boolean, default: false, index: true })
+  synced: boolean;
+
+  @Prop({ type: Date, required: false })
+  synchronizedAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

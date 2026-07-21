@@ -13,6 +13,7 @@ import { SalesModule } from "./sales/sales.module";
 import { EventsModule } from "./events/events.module";
 import { LogsModule } from "./logs/logs.module";
 import { CategoriesModule } from "./categories/categories.module";
+import { SyncModule } from "./sync/sync.module";
 
 @Module({
   imports: [
@@ -25,9 +26,15 @@ import { CategoriesModule } from "./categories/categories.module";
     // Async MongoDB connection loaded from env
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>("MONGODB_URI") || "mongodb://localhost:27017/lojinha",
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const useLocalDb = configService.get<string>("USE_LOCAL_DB") === "true";
+        const localUri = configService.get<string>("MONGODB_URI_LOCAL") || "mongodb://localhost:27017/lojinha";
+        const cloudUri = configService.get<string>("MONGODB_URI_CLOUD") || configService.get<string>("MONGODB_URI");
+        
+        return {
+          uri: useLocalDb ? localUri : (cloudUri || localUri),
+        };
+      },
       inject: [ConfigService],
     }),
 
@@ -40,6 +47,7 @@ import { CategoriesModule } from "./categories/categories.module";
     EventsModule,
     LogsModule,
     CategoriesModule,
+    SyncModule,
   ],
   controllers: [AppController],
   providers: [AppService],
