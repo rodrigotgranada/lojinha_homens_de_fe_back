@@ -45,15 +45,16 @@ export class SyncController {
     // 1. Processar Usuários (Clientes)
     if (payload.users && payload.users.length > 0) {
       for (const userData of payload.users) {
-        // Remove virtuals que possam quebrar a validação estrita do Mongo
-        const { id, ...cleanUserData } = userData;
+        // Remove campos imutáveis (_id) e versionamento (__v) que quebram o update do Mongo
+        const { _id, id, __v, ...cleanUserData } = userData;
+        const targetId = _id || id;
         
         // Garante que o synced é gravado como true na nuvem
         cleanUserData.synced = true;
         cleanUserData.synchronizedAt = new Date();
 
         await this.userModel.findByIdAndUpdate(
-          userData._id || id,
+          targetId,
           { $set: cleanUserData },
           { upsert: true, new: true }
         ).exec();
@@ -63,14 +64,16 @@ export class SyncController {
     // 2. Processar Vendas
     if (payload.sales && payload.sales.length > 0) {
       for (const saleData of payload.sales) {
-        const { id, ...cleanSaleData } = saleData;
+        // Remove campos imutáveis (_id) e versionamento (__v) que quebram o update do Mongo
+        const { _id, id, __v, ...cleanSaleData } = saleData;
+        const targetId = _id || id;
 
         // Garante que o synced é gravado como true na nuvem
         cleanSaleData.synced = true;
         cleanSaleData.synchronizedAt = new Date();
 
         await this.saleModel.findByIdAndUpdate(
-          saleData._id || id,
+          targetId,
           { $set: cleanSaleData },
           { upsert: true, new: true }
         ).exec();
