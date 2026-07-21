@@ -77,8 +77,12 @@ export class SyncService implements OnApplicationBootstrap {
 
   private async checkRemoteConnectivity(remoteUrl: string): Promise<boolean> {
     try {
-      const response = await fetch(`${remoteUrl}/health`, { signal: AbortSignal.timeout(5000) });
-      return response.ok;
+      const response = await fetch(`${remoteUrl}/sync/health`, { signal: AbortSignal.timeout(5000) });
+      if (!response.ok) {
+        this.logger.warn(`Servidor remoto respondeu com status inválido no health: ${response.status}. Pulando sincronização.`);
+        return false;
+      }
+      return true;
     } catch (e) {
       this.logger.warn(`Sem internet ou servidor remoto indisponível em ${remoteUrl}. Aguardando próxima rodada.`);
       return false;
