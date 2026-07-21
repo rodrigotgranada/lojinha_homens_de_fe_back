@@ -158,6 +158,8 @@ export class SyncService implements OnApplicationBootstrap {
         products: any[];
         categories: any[];
         events: any[];
+        users: any[];
+        sales: any[];
         timestamp: number;
       };
 
@@ -195,6 +197,30 @@ export class SyncService implements OnApplicationBootstrap {
           await this.productModel.findByIdAndUpdate(
             prod._id,
             { ...prod },
+            { upsert: true, new: true }
+          ).exec();
+        }
+      }
+
+      // 4. Atualizar Usuários (Clientes) locais
+      if (data.users?.length > 0) {
+        this.logger.log(`Atualizando ${data.users.length} usuários (clientes) vindos da Nuvem...`);
+        for (const user of data.users) {
+          await this.userModel.findByIdAndUpdate(
+            user._id,
+            { ...user, synced: true, synchronizedAt: new Date() },
+            { upsert: true, new: true }
+          ).exec();
+        }
+      }
+
+      // 5. Atualizar Vendas locais
+      if (data.sales?.length > 0) {
+        this.logger.log(`Atualizando ${data.sales.length} vendas vindas da Nuvem...`);
+        for (const sale of data.sales) {
+          await this.saleModel.findByIdAndUpdate(
+            sale._id,
+            { ...sale, synced: true, synchronizedAt: new Date() },
             { upsert: true, new: true }
           ).exec();
         }

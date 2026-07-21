@@ -102,10 +102,22 @@ export class SyncController {
       updatedAt: { $gt: filterDate }
     }).exec();
 
+    // Buscar usuários modificados após a data informada
+    const users = await this.userModel.find({
+      updatedAt: { $gt: filterDate }
+    }).exec();
+
+    // Buscar vendas modificadas após a data informada
+    const sales = await this.saleModel.find({
+      updatedAt: { $gt: filterDate }
+    }).exec();
+
     return {
       categories,
       events,
       products,
+      users,
+      sales,
       timestamp: Date.now() // Retorna o timestamp de agora para o controle do cliente no próximo ciclo
     };
   }
