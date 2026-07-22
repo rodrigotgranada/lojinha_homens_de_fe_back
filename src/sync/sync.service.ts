@@ -173,9 +173,10 @@ export class SyncService implements OnApplicationBootstrap {
       if (data.categories?.length > 0) {
         this.logger.log(`Atualizando ${data.categories.length} categorias vindas da Nuvem...`);
         for (const cat of data.categories) {
+          const { _id, id, __v, ...cleanCat } = cat;
           await this.categoryModel.findByIdAndUpdate(
-            cat._id,
-            { ...cat },
+            _id || id,
+            { $set: cleanCat },
             { upsert: true, new: true }
           ).exec();
         }
@@ -185,9 +186,10 @@ export class SyncService implements OnApplicationBootstrap {
       if (data.events?.length > 0) {
         this.logger.log(`Atualizando ${data.events.length} eventos vindos da Nuvem...`);
         for (const ev of data.events) {
+          const { _id, id, __v, ...cleanEv } = ev;
           await this.eventModel.findByIdAndUpdate(
-            ev._id,
-            { ...ev },
+            _id || id,
+            { $set: cleanEv },
             { upsert: true, new: true }
           ).exec();
         }
@@ -197,12 +199,10 @@ export class SyncService implements OnApplicationBootstrap {
       if (data.products?.length > 0) {
         this.logger.log(`Atualizando ${data.products.length} produtos vindos da Nuvem...`);
         for (const prod of data.products) {
-          // Atualiza dados locais (preserva o estoque local caso seja alterado)
-          // Mas se o estoque na nuvem for alterado por adm, pode sobrescrever se necessário.
-          // Aqui, fazemos upsert mantendo o _id original.
+          const { _id, id, __v, ...cleanProd } = prod;
           await this.productModel.findByIdAndUpdate(
-            prod._id,
-            { ...prod },
+            _id || id,
+            { $set: cleanProd },
             { upsert: true, new: true }
           ).exec();
         }
@@ -212,9 +212,23 @@ export class SyncService implements OnApplicationBootstrap {
       if (data.users?.length > 0) {
         this.logger.log(`Atualizando ${data.users.length} usuários (clientes) vindos da Nuvem...`);
         for (const user of data.users) {
+          const { _id, id, __v, ...cleanUser } = user;
+          let targetId = _id || id;
+
+          // Evitar colisão de CPF no MongoDB local do Notebook
+          if (cleanUser.cpf) {
+            const existingUser = await this.userModel.findOne({ cpf: cleanUser.cpf }).exec();
+            if (existingUser) {
+              targetId = existingUser._id;
+            }
+          }
+
+          cleanUser.synced = true;
+          cleanUser.synchronizedAt = new Date();
+
           await this.userModel.findByIdAndUpdate(
-            user._id,
-            { ...user, synced: true, synchronizedAt: new Date() },
+            targetId,
+            { $set: cleanUser },
             { upsert: true, new: true }
           ).exec();
         }
@@ -224,9 +238,13 @@ export class SyncService implements OnApplicationBootstrap {
       if (data.sales?.length > 0) {
         this.logger.log(`Atualizando ${data.sales.length} vendas vindas da Nuvem...`);
         for (const sale of data.sales) {
+          const { _id, id, __v, ...cleanSale } = sale;
+          cleanSale.synced = true;
+          cleanSale.synchronizedAt = new Date();
+          
           await this.saleModel.findByIdAndUpdate(
-            sale._id,
-            { ...sale, synced: true, synchronizedAt: new Date() },
+            _id || id,
+            { $set: cleanSale },
             { upsert: true, new: true }
           ).exec();
         }
