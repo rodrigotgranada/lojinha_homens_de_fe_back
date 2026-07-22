@@ -27,7 +27,7 @@ export class CategoriesService {
     const updated = await this.categoryModel.findByIdAndUpdate(
       id,
       { name: formattedName },
-      { new: true }
+      { returnDocument: 'after' as any }
     ).exec();
     if (!updated) {
       throw new Error("Category not found");
@@ -39,7 +39,7 @@ export class CategoriesService {
     const deleted = await this.categoryModel.findByIdAndUpdate(
       id,
       { active: false },
-      { new: true }
+      { returnDocument: 'after' as any }
     ).exec();
     if (!deleted) {
       throw new Error("Category not found");

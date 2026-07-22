@@ -35,14 +35,14 @@ let CategoriesService = class CategoriesService {
     }
     async update(id, name) {
         const formattedName = name.trim();
-        const updated = await this.categoryModel.findByIdAndUpdate(id, { name: formattedName }, { new: true }).exec();
+        const updated = await this.categoryModel.findByIdAndUpdate(id, { name: formattedName }, { returnDocument: 'after' }).exec();
         if (!updated) {
             throw new Error("Category not found");
         }
         return updated;
     }
     async delete(id) {
-        const deleted = await this.categoryModel.findByIdAndUpdate(id, { active: false }, { new: true }).exec();
+        const deleted = await this.categoryModel.findByIdAndUpdate(id, { active: false }, { returnDocument: 'after' }).exec();
         if (!deleted) {
             throw new Error("Category not found");
         }

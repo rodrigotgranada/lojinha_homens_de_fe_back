@@ -177,7 +177,7 @@ export class SyncService implements OnApplicationBootstrap {
           await this.categoryModel.findByIdAndUpdate(
             _id || id,
             { $set: cleanCat },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' as any }
           ).exec();
         }
       }
@@ -190,7 +190,7 @@ export class SyncService implements OnApplicationBootstrap {
           await this.eventModel.findByIdAndUpdate(
             _id || id,
             { $set: cleanEv },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' as any }
           ).exec();
         }
       }
@@ -203,7 +203,7 @@ export class SyncService implements OnApplicationBootstrap {
           await this.productModel.findByIdAndUpdate(
             _id || id,
             { $set: cleanProd },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' as any }
           ).exec();
         }
       }
@@ -229,7 +229,7 @@ export class SyncService implements OnApplicationBootstrap {
           await this.userModel.findByIdAndUpdate(
             targetId,
             { $set: cleanUser },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' as any }
           ).exec();
         }
       }
@@ -245,7 +245,7 @@ export class SyncService implements OnApplicationBootstrap {
           await this.saleModel.findByIdAndUpdate(
             _id || id,
             { $set: cleanSale },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' as any }
           ).exec();
         }
       }

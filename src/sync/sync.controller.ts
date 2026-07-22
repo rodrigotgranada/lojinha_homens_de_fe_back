@@ -66,7 +66,7 @@ export class SyncController {
           await this.userModel.findByIdAndUpdate(
             targetId,
             { $set: cleanUserData },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' as any }
           ).exec();
         } catch (err) {
           this.logger.error(`Erro ao processar PUSH de usuário: ${err.message}`);
@@ -90,7 +90,7 @@ export class SyncController {
           await this.saleModel.findByIdAndUpdate(
             targetId,
             { $set: cleanSaleData },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' as any }
           ).exec();
         } catch (err) {
           this.logger.error(`Erro ao processar PUSH de venda: ${err.message}`);
