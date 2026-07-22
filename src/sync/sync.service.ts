@@ -119,7 +119,7 @@ export class SyncService implements OnApplicationBootstrap {
         throw new Error(`Servidor remoto respondeu com status ${response.status}`);
       }
 
-      const result = await response.json();
+      const result = await response.json() as { success: boolean; errors?: string[] };
       if (result.success) {
         this.logger.log("Dados enviados e aceitos pela nuvem com sucesso.");
 
@@ -142,6 +142,8 @@ export class SyncService implements OnApplicationBootstrap {
         }
 
         this.logger.log("Status de sincronização local atualizado.");
+      } else {
+        this.logger.warn(`A nuvem processou o PUSH mas reportou erros parciais: ${result.errors?.join(" | ")}`);
       }
     } catch (err) {
       this.logger.error("Falha ao enviar dados pendentes (Push):", err.message);

@@ -41,43 +41,67 @@ export class SyncController {
   @HttpCode(HttpStatus.OK)
   async pushData(@Body() payload: { sales: any[]; users: any[] }) {
     this.logger.log(`Recebendo PUSH da Nuvem: ${payload.sales?.length || 0} vendas e ${payload.users?.length || 0} usuários.`);
+    const errors: string[] = [];
 
     // 1. Processar Usuários (Clientes)
     if (payload.users && payload.users.length > 0) {
       for (const userData of payload.users) {
-        // Remove campos imutáveis (_id) e versionamento (__v) que quebram o update do Mongo
-        const { _id, id, __v, ...cleanUserData } = userData;
-        const targetId = _id || id;
-        
-        // Garante que o synced é gravado como true na nuvem
-        cleanUserData.synced = true;
-        cleanUserData.synchronizedAt = new Date();
+        try {
+          // Remove campos imutáveis (_id) e versionamento (__v) que quebram o update do Mongo
+          const { _id, id, __v, ...cleanUserData } = userData;
+          let targetId = _id || id;
 
-        await this.userModel.findByIdAndUpdate(
-          targetId,
-          { $set: cleanUserData },
-          { upsert: true, new: true }
-        ).exec();
+          // Prevenir colisão de índice único de CPF na Nuvem (se houver CPF preenchido)
+          if (cleanUserData.cpf) {
+            const existingUser = await this.userModel.findOne({ cpf: cleanUserData.cpf }).exec();
+            if (existingUser) {
+              targetId = existingUser._id;
+            }
+          }
+          
+          // Garante que o synced é gravado como true na nuvem
+          cleanUserData.synced = true;
+          cleanUserData.synchronizedAt = new Date();
+
+          await this.userModel.findByIdAndUpdate(
+            targetId,
+            { $set: cleanUserData },
+            { upsert: true, new: true }
+          ).exec();
+        } catch (err) {
+          this.logger.error(`Erro ao processar PUSH de usuário: ${err.message}`);
+          errors.push(`User error (${userData.cpf || userData.email}): ${err.message}`);
+        }
       }
     }
 
     // 2. Processar Vendas
     if (payload.sales && payload.sales.length > 0) {
       for (const saleData of payload.sales) {
-        // Remove campos imutáveis (_id) e versionamento (__v) que quebram o update do Mongo
-        const { _id, id, __v, ...cleanSaleData } = saleData;
-        const targetId = _id || id;
+        try {
+          // Remove campos imutáveis (_id) e versionamento (__v) que quebram o update do Mongo
+          const { _id, id, __v, ...cleanSaleData } = saleData;
+          const targetId = _id || id;
 
-        // Garante que o synced é gravado como true na nuvem
-        cleanSaleData.synced = true;
-        cleanSaleData.synchronizedAt = new Date();
+          // Garante que o synced é gravado como true na nuvem
+          cleanSaleData.synced = true;
+          cleanSaleData.synchronizedAt = new Date();
 
-        await this.saleModel.findByIdAndUpdate(
-          targetId,
-          { $set: cleanSaleData },
-          { upsert: true, new: true }
-        ).exec();
+          await this.saleModel.findByIdAndUpdate(
+            targetId,
+            { $set: cleanSaleData },
+            { upsert: true, new: true }
+          ).exec();
+        } catch (err) {
+          this.logger.error(`Erro ao processar PUSH de venda: ${err.message}`);
+          errors.push(`Sale error (${saleData._id}): ${err.message}`);
+        }
       }
+    }
+
+    if (errors.length > 0) {
+      this.logger.warn(`PUSH concluído com ${errors.length} erros parciais.`);
+      return { success: false, errors };
     }
 
     return { success: true };
