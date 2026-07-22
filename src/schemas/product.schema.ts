@@ -34,7 +34,7 @@ export class Product extends Document {
 export const ProductSchema = SchemaFactory.createForClass(Product);
 
 ProductSchema.virtual("id").get(function () {
-  return this._id.toHexString();
+  return this._id ? this._id.toHexString() : null;
 });
 
 // Virtual category name mapping for client compatibility

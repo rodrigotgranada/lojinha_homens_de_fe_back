@@ -75,7 +75,7 @@ exports.User = User = __decorate([
 ], User);
 exports.UserSchema = mongoose_1.SchemaFactory.createForClass(User);
 exports.UserSchema.virtual("id").get(function () {
-    return this._id.toHexString();
+    return this._id ? this._id.toHexString() : null;
 });
 exports.UserSchema.set("toJSON", { virtuals: true });
 exports.UserSchema.set("toObject", { virtuals: true });

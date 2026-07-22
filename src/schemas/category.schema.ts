@@ -13,7 +13,7 @@ export class Category extends Document {
 export const CategorySchema = SchemaFactory.createForClass(Category);
 
 CategorySchema.virtual("id").get(function () {
-  return this._id.toHexString();
+  return this._id ? this._id.toHexString() : null;
 });
 CategorySchema.set("toJSON", { virtuals: true });
 CategorySchema.set("toObject", { virtuals: true });

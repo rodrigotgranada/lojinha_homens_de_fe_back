@@ -50,7 +50,7 @@ exports.Event = Event = __decorate([
 ], Event);
 exports.EventSchema = mongoose_1.SchemaFactory.createForClass(Event);
 exports.EventSchema.virtual("id").get(function () {
-    return this._id.toHexString();
+    return this._id ? this._id.toHexString() : null;
 });
 exports.EventSchema.set("toJSON", { virtuals: true });
 exports.EventSchema.set("toObject", { virtuals: true });

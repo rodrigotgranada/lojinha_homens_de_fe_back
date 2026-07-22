@@ -22,7 +22,7 @@ export class Log extends Document {
 export const LogSchema = SchemaFactory.createForClass(Log);
 
 LogSchema.virtual("id").get(function () {
-  return this._id.toHexString();
+  return this._id ? this._id.toHexString() : null;
 });
 LogSchema.set("toJSON", { virtuals: true });
 LogSchema.set("toObject", { virtuals: true });

@@ -76,7 +76,7 @@ exports.Sale = Sale = __decorate([
 ], Sale);
 exports.SaleSchema = mongoose_1.SchemaFactory.createForClass(Sale);
 exports.SaleSchema.virtual("id").get(function () {
-    return this._id.toHexString();
+    return this._id ? this._id.toHexString() : null;
 });
 exports.SaleSchema.set("toJSON", { virtuals: true });
 exports.SaleSchema.set("toObject", { virtuals: true });

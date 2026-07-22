@@ -27,7 +27,7 @@ export class Event extends Document {
 export const EventSchema = SchemaFactory.createForClass(Event);
 
 EventSchema.virtual("id").get(function () {
-  return this._id.toHexString();
+  return this._id ? this._id.toHexString() : null;
 });
 EventSchema.set("toJSON", { virtuals: true });
 EventSchema.set("toObject", { virtuals: true });

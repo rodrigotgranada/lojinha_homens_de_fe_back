@@ -65,7 +65,7 @@ exports.Product = Product = __decorate([
 ], Product);
 exports.ProductSchema = mongoose_1.SchemaFactory.createForClass(Product);
 exports.ProductSchema.virtual("id").get(function () {
-    return this._id.toHexString();
+    return this._id ? this._id.toHexString() : null;
 });
 exports.ProductSchema.virtual("category").get(function () {
     if (this.categoryRef && typeof this.categoryRef === "object" && "name" in this.categoryRef) {

@@ -30,7 +30,7 @@ exports.Category = Category = __decorate([
 ], Category);
 exports.CategorySchema = mongoose_1.SchemaFactory.createForClass(Category);
 exports.CategorySchema.virtual("id").get(function () {
-    return this._id.toHexString();
+    return this._id ? this._id.toHexString() : null;
 });
 exports.CategorySchema.set("toJSON", { virtuals: true });
 exports.CategorySchema.set("toObject", { virtuals: true });

@@ -42,7 +42,7 @@ export class Sale extends Document {
 export const SaleSchema = SchemaFactory.createForClass(Sale);
 
 SaleSchema.virtual("id").get(function () {
-  return this._id.toHexString();
+  return this._id ? this._id.toHexString() : null;
 });
 SaleSchema.set("toJSON", { virtuals: true });
 SaleSchema.set("toObject", { virtuals: true });

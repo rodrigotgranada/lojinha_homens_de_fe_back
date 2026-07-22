@@ -45,7 +45,7 @@ exports.Log = Log = __decorate([
 ], Log);
 exports.LogSchema = mongoose_1.SchemaFactory.createForClass(Log);
 exports.LogSchema.virtual("id").get(function () {
-    return this._id.toHexString();
+    return this._id ? this._id.toHexString() : null;
 });
 exports.LogSchema.set("toJSON", { virtuals: true });
 exports.LogSchema.set("toObject", { virtuals: true });
