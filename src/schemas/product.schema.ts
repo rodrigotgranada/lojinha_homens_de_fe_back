@@ -12,6 +12,15 @@ export class Product extends Document {
   @Prop({ required: true, type: Number })
   stock: number;
 
+  @Prop({ default: 0, type: Number })
+  costPrice: number;
+
+  @Prop({ default: "" })
+  sponsorName: string;
+
+  @Prop({ default: 0, type: Number })
+  initialStock: number;
+
   @Prop({ default: "" })
   imageUrl: string;
 

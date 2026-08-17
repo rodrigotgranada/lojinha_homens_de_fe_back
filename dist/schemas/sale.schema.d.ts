@@ -3,6 +3,7 @@ declare class SaleItem {
     productId: Types.ObjectId;
     quantity: number;
     priceAtPurchase: number;
+    costAtPurchase: number;
 }
 export declare class Sale extends Document {
     customerId: Types.ObjectId;

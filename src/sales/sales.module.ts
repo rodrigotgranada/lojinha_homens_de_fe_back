@@ -9,9 +9,14 @@ import { LogsModule } from "../logs/logs.module";
 import { SalesAnalyticsService } from "./sales-analytics.service";
 import { SalesAnalyticsController } from "./sales-analytics.controller";
 
+import { Product, ProductSchema } from "../schemas/product.schema";
+
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Sale.name, schema: SaleSchema }]),
+    MongooseModule.forFeature([
+      { name: Sale.name, schema: SaleSchema },
+      { name: Product.name, schema: ProductSchema }
+    ]),
     ProductsModule,
     LogsModule,
   ],

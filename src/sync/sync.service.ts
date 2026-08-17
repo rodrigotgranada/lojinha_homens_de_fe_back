@@ -169,9 +169,22 @@ export class SyncService implements OnApplicationBootstrap {
         timestamp: number;
       };
 
+      const hasUpdates =
+        (data.categories?.length || 0) +
+        (data.events?.length || 0) +
+        (data.products?.length || 0) +
+        (data.users?.length || 0) +
+        (data.sales?.length || 0) > 0;
+
+      if (!hasUpdates) {
+        this.lastPullTimestamp = data.timestamp || Date.now();
+        return;
+      }
+
+      this.logger.log(`Atualizações encontradas na Nuvem: Categorias (${data.categories?.length || 0}), Eventos (${data.events?.length || 0}), Produtos (${data.products?.length || 0}), Usuários (${data.users?.length || 0}), Vendas (${data.sales?.length || 0})`);
+
       // 1. Atualizar Categorias locais
       if (data.categories?.length > 0) {
-        this.logger.log(`Atualizando ${data.categories.length} categorias vindas da Nuvem...`);
         for (const cat of data.categories) {
           const { _id, id, __v, ...cleanCat } = cat;
           await this.categoryModel.findByIdAndUpdate(
@@ -184,7 +197,6 @@ export class SyncService implements OnApplicationBootstrap {
 
       // 2. Atualizar Eventos locais
       if (data.events?.length > 0) {
-        this.logger.log(`Atualizando ${data.events.length} eventos vindos da Nuvem...`);
         for (const ev of data.events) {
           const { _id, id, __v, ...cleanEv } = ev;
           await this.eventModel.findByIdAndUpdate(
@@ -197,7 +209,6 @@ export class SyncService implements OnApplicationBootstrap {
 
       // 3. Atualizar Produtos locais
       if (data.products?.length > 0) {
-        this.logger.log(`Atualizando ${data.products.length} produtos vindos da Nuvem...`);
         for (const prod of data.products) {
           const { _id, id, __v, ...cleanProd } = prod;
           await this.productModel.findByIdAndUpdate(
@@ -210,7 +221,6 @@ export class SyncService implements OnApplicationBootstrap {
 
       // 4. Atualizar Usuários (Clientes) locais
       if (data.users?.length > 0) {
-        this.logger.log(`Atualizando ${data.users.length} usuários (clientes) vindos da Nuvem...`);
         for (const user of data.users) {
           const { _id, id, __v, ...cleanUser } = user;
           let targetId = _id || id;
@@ -236,7 +246,6 @@ export class SyncService implements OnApplicationBootstrap {
 
       // 5. Atualizar Vendas locais
       if (data.sales?.length > 0) {
-        this.logger.log(`Atualizando ${data.sales.length} vendas vindas da Nuvem...`);
         for (const sale of data.sales) {
           const { _id, id, __v, ...cleanSale } = sale;
           cleanSale.synced = true;
@@ -252,7 +261,7 @@ export class SyncService implements OnApplicationBootstrap {
 
       // Salva o timestamp retornado pelo servidor remoto para o próximo ciclo
       this.lastPullTimestamp = data.timestamp || Date.now();
-      this.logger.log(`Pull completo. Novo timestamp de controle de sincronização: ${new Date(this.lastPullTimestamp).toISOString()}`);
+      this.logger.log(`Pull completo. Novo timestamp de sincronização: ${new Date(this.lastPullTimestamp).toISOString()}`);
     } catch (err) {
       this.logger.error("Falha ao puxar atualizações (Pull):", err.message);
       throw err;

@@ -10,12 +10,56 @@ export declare class SalesAnalyticsController {
             pagoCount: number;
             pendenteCount: number;
             ticketMedio: number;
+            totalCost?: undefined;
+            totalProfit?: undefined;
+            profitMargin?: undefined;
+        };
+        topSellingProducts: never[];
+        topBuyers: never[];
+        salesTimeline: never[];
+        investorsReport?: undefined;
+    } | {
+        summary: {
+            totalRevenue: number;
+            totalCost: number;
+            totalProfit: number;
+            profitMargin: number;
+            pendingRevenue: number;
+            totalSalesCount: number;
+            pagoCount: number;
+            pendenteCount: number;
+            ticketMedio: number;
         };
         topSellingProducts: {
             name: string;
             quantity: number;
             revenue: number;
+            cost: number;
+            profit: number;
             category: string;
+            sponsorName: string;
+        }[];
+        investorsReport: {
+            repaymentProgress: number;
+            sponsorName: string;
+            products: {
+                productId: string;
+                name: string;
+                costPrice: number;
+                salePrice: number;
+                initialStock: number;
+                currentStock: number;
+                soldQuantity: number;
+                totalRevenue: number;
+                costToRepay: number;
+                totalProfit: number;
+                investedAmount: number;
+            }[];
+            totalInvested: number;
+            totalSoldQuantity: number;
+            totalRevenue: number;
+            totalToRepay: number;
+            totalProfitForRetreat: number;
         }[];
         topBuyers: {
             name: string;

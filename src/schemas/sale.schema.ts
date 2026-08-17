@@ -11,6 +11,9 @@ class SaleItem {
 
   @Prop({ required: true, type: Number })
   priceAtPurchase: number;
+
+  @Prop({ default: 0, type: Number })
+  costAtPurchase: number;
 }
 
 const SaleItemSchema = SchemaFactory.createForClass(SaleItem);

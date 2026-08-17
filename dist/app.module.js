@@ -29,6 +29,7 @@ const events_module_1 = require("./events/events.module");
 const logs_module_1 = require("./logs/logs.module");
 const categories_module_1 = require("./categories/categories.module");
 const sync_module_1 = require("./sync/sync.module");
+const expenses_module_1 = require("./expenses/expenses.module");
 let AppModule = class AppModule {
     connection;
     firebaseService;
@@ -176,6 +177,7 @@ exports.AppModule = AppModule = __decorate([
             logs_module_1.LogsModule,
             categories_module_1.CategoriesModule,
             sync_module_1.SyncModule,
+            expenses_module_1.ExpensesModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

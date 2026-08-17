@@ -14,6 +14,7 @@ import { EventsModule } from "./events/events.module";
 import { LogsModule } from "./logs/logs.module";
 import { CategoriesModule } from "./categories/categories.module";
 import { SyncModule } from "./sync/sync.module";
+import { ExpensesModule } from "./expenses/expenses.module";
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { SyncModule } from "./sync/sync.module";
     LogsModule,
     CategoriesModule,
     SyncModule,
+    ExpensesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

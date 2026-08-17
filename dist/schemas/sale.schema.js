@@ -16,6 +16,7 @@ let SaleItem = class SaleItem {
     productId;
     quantity;
     priceAtPurchase;
+    costAtPurchase;
 };
 __decorate([
     (0, mongoose_1.Prop)({ required: true, type: mongoose_2.Types.ObjectId, ref: "Product" }),
@@ -29,6 +30,10 @@ __decorate([
     (0, mongoose_1.Prop)({ required: true, type: Number }),
     __metadata("design:type", Number)
 ], SaleItem.prototype, "priceAtPurchase", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ default: 0, type: Number }),
+    __metadata("design:type", Number)
+], SaleItem.prototype, "costAtPurchase", void 0);
 SaleItem = __decorate([
     (0, mongoose_1.Schema)()
 ], SaleItem);

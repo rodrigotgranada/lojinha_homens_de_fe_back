@@ -45,6 +45,19 @@ let SalesService = class SalesService {
             .exec();
     }
     async create(createSaleDto) {
+        if (createSaleDto.items && Array.isArray(createSaleDto.items)) {
+            for (const item of createSaleDto.items) {
+                if (item.costAtPurchase === undefined || item.costAtPurchase === null) {
+                    try {
+                        const prod = await this.productsService.findOne(item.productId);
+                        item.costAtPurchase = prod?.costPrice || 0;
+                    }
+                    catch (e) {
+                        item.costAtPurchase = 0;
+                    }
+                }
+            }
+        }
         const createdSale = new this.saleModel(createSaleDto);
         return createdSale.save();
     }

@@ -16,6 +16,9 @@ let Product = class Product extends mongoose_2.Document {
     name;
     price;
     stock;
+    costPrice;
+    sponsorName;
+    initialStock;
     imageUrl;
     active;
     categoryRef;
@@ -36,6 +39,18 @@ __decorate([
     (0, mongoose_1.Prop)({ required: true, type: Number }),
     __metadata("design:type", Number)
 ], Product.prototype, "stock", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ default: 0, type: Number }),
+    __metadata("design:type", Number)
+], Product.prototype, "costPrice", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ default: "" }),
+    __metadata("design:type", String)
+], Product.prototype, "sponsorName", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ default: 0, type: Number }),
+    __metadata("design:type", Number)
+], Product.prototype, "initialStock", void 0);
 __decorate([
     (0, mongoose_1.Prop)({ default: "" }),
     __metadata("design:type", String)
