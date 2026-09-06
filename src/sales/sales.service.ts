@@ -4,6 +4,8 @@ import { Model } from "mongoose";
 import { Sale } from "../schemas/sale.schema";
 import { ProductsService } from "../products/products.service";
 import { LogsService } from "../logs/logs.service";
+import { roundMoney } from "../common/utils/money.util";
+import { CreateSaleDto } from "./dto/sale.dto";
 
 @Injectable()
 export class SalesService {
@@ -31,7 +33,7 @@ export class SalesService {
       .exec();
   }
 
-  async create(createSaleDto: any): Promise<Sale> {
+  async create(createSaleDto: CreateSaleDto): Promise<Sale> {
     if (createSaleDto.items && Array.isArray(createSaleDto.items)) {
       for (const item of createSaleDto.items) {
         if (item.costAtPurchase === undefined || item.costAtPurchase === null) {
@@ -42,8 +44,19 @@ export class SalesService {
             item.costAtPurchase = 0;
           }
         }
+        item.priceAtPurchase = roundMoney(item.priceAtPurchase);
+        item.costAtPurchase = roundMoney(item.costAtPurchase || 0);
+
+        // Baixa atômica no estoque do produto ($inc negativo)
+        try {
+          await this.productsService.incrementStock(item.productId, -item.quantity);
+        } catch (err) {
+          console.error(`Falha ao decrementar estoque de ${item.productId}:`, err);
+        }
       }
     }
+
+    createSaleDto.totalPrice = roundMoney(createSaleDto.totalPrice);
     const createdSale = new this.saleModel(createSaleDto);
     return createdSale.save();
   }
@@ -71,8 +84,8 @@ export class SalesService {
           saleId: id,
           status,
           totalPrice: updated.totalPrice,
-          eventId: updated.eventId
-        }
+          eventId: updated.eventId,
+        },
       });
     } catch (err) {
       console.error("Falha ao registrar log de mudança de status:", err);
@@ -96,22 +109,16 @@ export class SalesService {
       throw new BadRequestException("Esta venda já foi cancelada anteriormente");
     }
 
-    // 1. Devolver itens de volta ao estoque
+    // 1. Devolver itens ao estoque de forma atômica ($inc positivo)
     for (const item of sale.items) {
       const productIdStr = (item.productId as any)._id 
         ? (item.productId as any)._id.toString() 
         : item.productId.toString();
       try {
-        const product = await this.productsService.findOne(productIdStr);
-        if (product) {
-          const newStock = product.stock + item.quantity;
-          console.log(`[SalesService] Restoring stock of product ${product.name} (${productIdStr}): ${product.stock} -> ${newStock}`);
-          await this.productsService.updateStock(productIdStr, newStock);
-        } else {
-          console.warn(`[SalesService] Product not found for stock restore: ${productIdStr}`);
-        }
+        console.log(`[SalesService] Incrementing stock atomically for product ${productIdStr} by +${item.quantity}`);
+        await this.productsService.incrementStock(productIdStr, item.quantity);
       } catch (err) {
-        console.error(`Falha ao devolver estoque do produto ${productIdStr}:`, err);
+        console.error(`Falha ao estornar estoque atomicamente do produto ${productIdStr}:`, err);
       }
     }
 
@@ -136,8 +143,8 @@ export class SalesService {
           saleId: id,
           totalPrice: sale.totalPrice,
           items: sale.items,
-          eventId: sale.eventId
-        }
+          eventId: sale.eventId,
+        },
       });
     } catch (err) {
       console.error("Falha ao registrar log de cancelamento:", err);

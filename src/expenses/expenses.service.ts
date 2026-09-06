@@ -1,11 +1,20 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
-import { Expense, ExpenseItem } from "../schemas/expense.schema";
+import { Expense, ExpenseItem, RepaymentRecord } from "../schemas/expense.schema";
 import { EventIncome } from "../schemas/event-income.schema";
 import { Sale } from "../schemas/sale.schema";
 import { Product } from "../schemas/product.schema";
 import { LogsService } from "../logs/logs.service";
+import { roundMoney } from "../common/utils/money.util";
+import { CreateExpenseGroupDto } from "./dto/create-expense-group.dto";
+import { CreateExpenseItemDto, UpdateExpenseItemDto } from "./dto/create-expense-item.dto";
+import { AddRepaymentDto } from "./dto/add-repayment.dto";
+import { CreateIncomeDto } from "./dto/create-income.dto";
 
 @Injectable()
 export class ExpensesService {
@@ -29,19 +38,19 @@ export class ExpensesService {
   }
 
   // Criar um novo centro de custo/obra
-  async create(createDto: {
-    eventId: string;
-    title: string;
-    category?: string;
-    nature?: "INFRAESTRUTURA" | "OPERACIONAL";
-    description?: string;
-    operatorName?: string;
-  }): Promise<Expense> {
+  async create(createDto: CreateExpenseGroupDto): Promise<Expense> {
+    const category = createDto.category || "OBRA";
+    const nature =
+      createDto.nature ||
+      (category === "OBRA" || category === "LOCACAO" || category === "ESTRUTURA"
+        ? "INFRAESTRUTURA"
+        : "OPERACIONAL");
+
     const expense = new this.expenseModel({
       eventId: new Types.ObjectId(createDto.eventId),
       title: createDto.title,
-      category: createDto.category || "OBRA",
-      nature: createDto.nature || (createDto.category === "OBRA" || createDto.category === "LOCACAO" || createDto.category === "ESTRUTURA" ? "INFRAESTRUTURA" : "OPERACIONAL"),
+      category,
+      nature,
       description: createDto.description || "",
       items: [],
       totalAmount: 0,
@@ -64,16 +73,7 @@ export class ExpensesService {
   // Adicionar um item a um grupo de despesa
   async addItem(
     expenseId: string,
-    itemDto: {
-      description: string;
-      amount: number;
-      paidBy: string;
-      payerPhone?: string;
-      isDonation?: boolean;
-      notes?: string;
-      receiptUrl?: string;
-      operatorName?: string;
-    }
+    itemDto: CreateExpenseItemDto
   ): Promise<Expense> {
     const expense = await this.expenseModel.findById(expenseId).exec();
     if (!expense) {
@@ -81,7 +81,7 @@ export class ExpensesService {
     }
 
     const isDonation = Boolean(itemDto.isDonation);
-    const amount = isDonation ? 0 : Number(itemDto.amount) || 0;
+    const amount = isDonation ? 0 : roundMoney(Number(itemDto.amount) || 0);
     const status = isDonation ? "DOACAO" : "PENDENTE";
 
     const newItem: ExpenseItem = {
@@ -96,6 +96,7 @@ export class ExpensesService {
       notes: itemDto.notes || "",
       receiptUrl: itemDto.receiptUrl || "",
       date: new Date(),
+      repaymentHistory: [],
     };
 
     expense.items.push(newItem);
@@ -106,29 +107,94 @@ export class ExpensesService {
       userId: "system",
       userName: itemDto.operatorName || "Admin",
       action: "expense_item_add",
-      description: `Adicionou o item "${itemDto.description}" (${isDonation ? "Doação" : "R$ " + amount.toFixed(2)}) pago/doado por ${itemDto.paidBy} na obra "${expense.title}"`,
+      description: `Adicionou o item "${itemDto.description}" (${
+        isDonation ? "Doação" : "R$ " + amount.toFixed(2)
+      }) pago/doado por ${itemDto.paidBy} na obra "${expense.title}"`,
       metadata: { expenseId, item: newItem },
     });
 
     return saved;
   }
 
-  // Atualizar um item existente ou registrar reembolso
+  // Registrar parcela individual de reembolso com histórico e trava de sobre-reembolso
+  async addRepayment(
+    expenseId: string,
+    itemId: string,
+    dto: AddRepaymentDto
+  ): Promise<Expense> {
+    const expense = await this.expenseModel.findById(expenseId).exec();
+    if (!expense) {
+      throw new NotFoundException(`Despesa #${expenseId} não encontrada`);
+    }
+
+    const item = expense.items.find((i) => i._id.toString() === itemId);
+    if (!item) {
+      throw new NotFoundException(`Item #${itemId} não encontrado na despesa`);
+    }
+
+    if (item.isDonation) {
+      throw new BadRequestException("Itens marcados como doação não recebem reembolso.");
+    }
+
+    const repayAmount = roundMoney(Number(dto.amount) || 0);
+    if (repayAmount <= 0) {
+      throw new BadRequestException("O valor do reembolso deve ser maior que zero.");
+    }
+
+    const currentRepaid = roundMoney(item.repaidAmount || 0);
+    const newTotalRepaid = roundMoney(currentRepaid + repayAmount);
+
+    // Trava de Sobre-reembolso: Não permitir devolver mais do que foi adiantado
+    if (newTotalRepaid > item.amount) {
+      const maxAllowed = roundMoney(item.amount - currentRepaid);
+      throw new BadRequestException(
+        `O valor informado (R$ ${repayAmount.toFixed(2)}) ultrapassa o saldo pendente de R$ ${maxAllowed.toFixed(2)} (Valor original: R$ ${item.amount.toFixed(2)}).`
+      );
+    }
+
+    const repaymentRecord: RepaymentRecord = {
+      _id: new Types.ObjectId(),
+      amount: repayAmount,
+      date: new Date(),
+      method: dto.method || "PIX",
+      proofUrl: dto.proofUrl || "",
+      operatorName: dto.operatorName || "Admin",
+      notes: dto.notes || "",
+    };
+
+    if (!item.repaymentHistory) {
+      item.repaymentHistory = [];
+    }
+    item.repaymentHistory.push(repaymentRecord);
+    item.repaidAmount = newTotalRepaid;
+
+    if (item.repaidAmount >= item.amount) {
+      item.status = "REEMBOLSADO";
+    } else if (item.repaidAmount > 0) {
+      item.status = "REEMBOLSADO_PARCIAL";
+    } else {
+      item.status = "PENDENTE";
+    }
+
+    this.recalculateTotals(expense);
+    const saved = await expense.save();
+
+    await this.logsService.create({
+      userId: "system",
+      userName: dto.operatorName || "Admin",
+      action: "expense_item_repayment",
+      description: `Registrou reembolso de R$ ${repayAmount.toFixed(2)} via ${repaymentRecord.method} para ${item.paidBy} no item "${item.description}" (${item.status})`,
+      metadata: { expenseId, itemId, repaymentRecord },
+    });
+
+    return saved;
+  }
+
+  // Atualizar um item existente com validações e trava de sobre-reembolso
   async updateItem(
     expenseId: string,
     itemId: string,
-    updateDto: {
-      description?: string;
-      amount?: number;
-      paidBy?: string;
-      payerPhone?: string;
-      isDonation?: boolean;
-      status?: "PENDENTE" | "REEMBOLSADO_PARCIAL" | "REEMBOLSADO" | "DOACAO";
-      repaidAmount?: number;
-      notes?: string;
-      receiptUrl?: string;
-      operatorName?: string;
-    }
+    updateDto: UpdateExpenseItemDto
   ): Promise<Expense> {
     const expense = await this.expenseModel.findById(expenseId).exec();
     if (!expense) {
@@ -152,16 +218,26 @@ export class ExpensesService {
         item.amount = 0;
         item.status = "DOACAO";
         item.repaidAmount = 0;
+        item.repaymentHistory = [];
       }
     }
 
     if (!item.isDonation && updateDto.amount !== undefined) {
-      item.amount = Number(updateDto.amount) || 0;
+      item.amount = roundMoney(Number(updateDto.amount) || 0);
     }
 
     if (!item.isDonation && updateDto.repaidAmount !== undefined) {
-      item.repaidAmount = Number(updateDto.repaidAmount) || 0;
-      if (item.repaidAmount >= item.amount) {
+      const requestedRepaid = roundMoney(Number(updateDto.repaidAmount) || 0);
+      
+      // Trava de Sobre-reembolso
+      if (requestedRepaid > item.amount) {
+        throw new BadRequestException(
+          `O valor reembolsado (R$ ${requestedRepaid.toFixed(2)}) não pode ser superior ao valor da despesa (R$ ${item.amount.toFixed(2)}).`
+        );
+      }
+
+      item.repaidAmount = requestedRepaid;
+      if (item.repaidAmount >= item.amount && item.amount > 0) {
         item.status = "REEMBOLSADO";
       } else if (item.repaidAmount > 0) {
         item.status = "REEMBOLSADO_PARCIAL";
@@ -232,8 +308,8 @@ export class ExpensesService {
     let repaid = 0;
     for (const item of expense.items) {
       if (!item.isDonation) {
-        total += item.amount || 0;
-        repaid += item.repaidAmount || 0;
+        total = roundMoney(total + (item.amount || 0));
+        repaid = roundMoney(repaid + (item.repaidAmount || 0));
       }
     }
     expense.totalAmount = total;
@@ -253,19 +329,12 @@ export class ExpensesService {
       .exec();
   }
 
-  async createIncome(incomeDto: {
-    eventId: string;
-    title: string;
-    type: string;
-    amount: number;
-    notes?: string;
-    operatorName?: string;
-  }): Promise<EventIncome> {
+  async createIncome(incomeDto: CreateIncomeDto): Promise<EventIncome> {
     const income = new this.eventIncomeModel({
       eventId: new Types.ObjectId(incomeDto.eventId),
       title: incomeDto.title,
       type: incomeDto.type,
-      amount: Number(incomeDto.amount) || 0,
+      amount: roundMoney(Number(incomeDto.amount) || 0),
       notes: incomeDto.notes || "",
       date: new Date(),
     });
@@ -276,7 +345,7 @@ export class ExpensesService {
       userId: "system",
       userName: incomeDto.operatorName || "Admin",
       action: "event_income_create",
-      description: `Registrou entrada de receita "${incomeDto.title}" no valor de R$ ${Number(incomeDto.amount).toFixed(2)} (${incomeDto.type})`,
+      description: `Registrou entrada de receita "${incomeDto.title}" no valor de R$ ${saved.amount.toFixed(2)} (${incomeDto.type})`,
       metadata: { incomeId: saved.id, eventId: incomeDto.eventId },
     });
 
@@ -297,7 +366,7 @@ export class ExpensesService {
   }
 
   // ==========================================
-  // BALANÇO CONSOLIDADO DO EVENTO (DESPESAS + RECEITAS + REEMBOLSOS)
+  // BALANÇO CONSOLIDADO DO EVENTO (DESPESAS + RECEITAS + REEMBOLSOS + DISPONIBILIDADE DE CAIXA)
   // ==========================================
   async getEventFinancialSummary(eventId: string) {
     const objEventId = Types.ObjectId.isValid(eventId) ? new Types.ObjectId(eventId) : null;
@@ -318,16 +387,24 @@ export class ExpensesService {
       status: "PAGO",
     }).populate("items.productId").exec();
 
-    const lojinhaRevenue = sales.reduce((acc, s) => acc + s.totalPrice, 0);
-    const lojinhaCost = sales.reduce((acc, s) => {
-      return acc + s.items.reduce((sum, item) => {
-        const prodObj = item.productId as any;
-        const currentProdCost = prodObj?.costPrice ?? 0;
-        const cost = (item.costAtPurchase && item.costAtPurchase > 0) ? item.costAtPurchase : currentProdCost;
-        return sum + (item.quantity * cost);
-      }, 0);
-    }, 0);
-    const lojinhaProfit = lojinhaRevenue - lojinhaCost;
+    const lojinhaRevenue = roundMoney(sales.reduce((acc, s) => acc + s.totalPrice, 0));
+    const lojinhaCost = roundMoney(
+      sales.reduce((acc, s) => {
+        return (
+          acc +
+          s.items.reduce((sum, item) => {
+            const prodObj = item.productId as any;
+            const currentProdCost = prodObj?.costPrice ?? 0;
+            const cost =
+              item.costAtPurchase && item.costAtPurchase > 0
+                ? item.costAtPurchase
+                : currentProdCost;
+            return sum + item.quantity * cost;
+          }, 0)
+        );
+      }, 0)
+    );
+    const lojinhaProfit = roundMoney(lojinhaRevenue - lojinhaCost);
 
     // Totais de despesas
     let totalExpensesAmount = 0;
@@ -337,44 +414,57 @@ export class ExpensesService {
     let totalOperExpenses = 0;
 
     // Extrato por Irmão / Financiador
-    const payerMap: Record<string, {
-      payerName: string;
-      payerPhone: string;
-      items: Array<{
-        expenseTitle: string;
-        description: string;
-        amount: number;
-        repaidAmount: number;
-        status: string;
-        isDonation: boolean;
-        nature: string;
-      }>;
-      totalPaid: number;
-      totalRepaid: number;
-      balanceToRepay: number; // totalPaid - totalRepaid
-      isFullyRepaid: boolean;
-      donationsCount: number;
-    }> = {};
+    const payerMap: Record<
+      string,
+      {
+        payerName: string;
+        payerPhone: string;
+        items: Array<{
+          expenseId: string;
+          itemId: string;
+          expenseTitle: string;
+          description: string;
+          amount: number;
+          repaidAmount: number;
+          status: string;
+          isDonation: boolean;
+          nature: string;
+          repaymentHistory: RepaymentRecord[];
+        }>;
+        totalPaid: number;
+        totalRepaid: number;
+        balanceToRepay: number;
+        isFullyRepaid: boolean;
+        donationsCount: number;
+      }
+    > = {};
 
     // Por Categoria
     const categoryTotals: Record<string, number> = {};
 
     expenses.forEach((exp) => {
-      categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.totalAmount;
+      categoryTotals[exp.category] = roundMoney(
+        (categoryTotals[exp.category] || 0) + exp.totalAmount
+      );
 
-      const isInfra = exp.nature === "INFRAESTRUTURA" || exp.category === "OBRA" || exp.category === "LOCACAO" || exp.category === "ESTRUTURA";
+      const isInfra =
+        exp.nature === "INFRAESTRUTURA" ||
+        exp.category === "OBRA" ||
+        exp.category === "LOCACAO" ||
+        exp.category === "ESTRUTURA";
+
       if (isInfra) {
-        totalInfraExpenses += exp.totalAmount;
+        totalInfraExpenses = roundMoney(totalInfraExpenses + exp.totalAmount);
       } else {
-        totalOperExpenses += exp.totalAmount;
+        totalOperExpenses = roundMoney(totalOperExpenses + exp.totalAmount);
       }
 
       exp.items.forEach((item) => {
         if (item.isDonation) {
           totalDonatedItemsCount += 1;
         } else {
-          totalExpensesAmount += item.amount;
-          totalExpensesRepaid += item.repaidAmount;
+          totalExpensesAmount = roundMoney(totalExpensesAmount + item.amount);
+          totalExpensesRepaid = roundMoney(totalExpensesRepaid + item.repaidAmount);
         }
 
         const payer = item.paidBy || "Anônimo";
@@ -392,26 +482,36 @@ export class ExpensesService {
         }
 
         payerMap[payer].items.push({
+          expenseId: exp.id || (exp as any)._id?.toString(),
+          itemId: item._id?.toString(),
           expenseTitle: exp.title,
           description: item.description,
-          amount: item.amount,
-          repaidAmount: item.repaidAmount,
+          amount: roundMoney(item.amount),
+          repaidAmount: roundMoney(item.repaidAmount),
           status: item.status,
           isDonation: item.isDonation,
           nature: exp.nature || (isInfra ? "INFRAESTRUTURA" : "OPERACIONAL"),
+          repaymentHistory: item.repaymentHistory || [],
         });
 
         if (item.isDonation) {
           payerMap[payer].donationsCount += 1;
         } else {
-          payerMap[payer].totalPaid += item.amount;
-          payerMap[payer].totalRepaid += item.repaidAmount;
+          payerMap[payer].totalPaid = roundMoney(payerMap[payer].totalPaid + item.amount);
+          payerMap[payer].totalRepaid = roundMoney(
+            payerMap[payer].totalRepaid + item.repaidAmount
+          );
         }
       });
     });
 
     // 4. Buscar produtos da Lojinha com Investidores/Patrocinadores vinculados
-    const allProducts = await this.productModel.find({ active: { $ne: false } }).exec();
+    const allProducts = await this.productModel
+      .find({
+        active: { $ne: false },
+        ...(objEventId ? { $or: [{ eventId: objEventId }, { eventId: null }, { eventId: { $exists: false } }] } : {}),
+      })
+      .exec();
 
     let totalStoreInvestment = 0;
     let totalStoreRepaid = 0;
@@ -421,23 +521,27 @@ export class ExpensesService {
       if (!sponsor) return;
 
       const prodCost = prod.costPrice || 0;
-      const initialStock = prod.initialStock && prod.initialStock > 0 ? prod.initialStock : prod.stock;
-      const investedAmount = initialStock * prodCost;
+      const initialStock =
+        prod.initialStock && prod.initialStock > 0 ? prod.initialStock : prod.stock;
+      const investedAmount = roundMoney(initialStock * prodCost);
 
       // Calcular quantas unidades desse produto já foram vendidas
       const soldQty = sales.reduce((acc, s) => {
-        return acc + s.items.reduce((sum, it) => {
-          const itId = (it.productId as any)?._id?.toString() || it.productId?.toString();
-          return itId === prod._id.toString() ? sum + it.quantity : sum;
-        }, 0);
+        return (
+          acc +
+          s.items.reduce((sum, it) => {
+            const itId =
+              (it.productId as any)?._id?.toString() || it.productId?.toString();
+            return itId === prod._id.toString() ? sum + it.quantity : sum;
+          }, 0)
+        );
       }, 0);
 
-      const costToRepay = soldQty * prodCost; // Valor já liberado para devolver com as vendas
+      const costToRepay = roundMoney(soldQty * prodCost);
 
-      totalStoreInvestment += investedAmount;
-      totalStoreRepaid += costToRepay;
+      totalStoreInvestment = roundMoney(totalStoreInvestment + investedAmount);
+      totalStoreRepaid = roundMoney(totalStoreRepaid + costToRepay);
 
-      // Adicionar o patrocinador no extrato geral de quem colocou dinheiro
       if (!payerMap[sponsor]) {
         payerMap[sponsor] = {
           payerName: sponsor,
@@ -452,21 +556,29 @@ export class ExpensesService {
       }
 
       payerMap[sponsor].items.push({
+        expenseId: "store-prod",
+        itemId: prod._id.toString(),
         expenseTitle: `Confecção Lojinha (${prod.name})`,
         description: `Tiragem de ${initialStock} unids a R$ ${prodCost.toFixed(2)} (${soldQty} vendidas)`,
         amount: investedAmount,
         repaidAmount: costToRepay,
-        status: costToRepay >= investedAmount ? "REEMBOLSADO" : costToRepay > 0 ? "REEMBOLSADO_PARCIAL" : "PENDENTE",
+        status:
+          costToRepay >= investedAmount
+            ? "REEMBOLSADO"
+            : costToRepay > 0
+            ? "REEMBOLSADO_PARCIAL"
+            : "PENDENTE",
         isDonation: false,
         nature: "LOJINHA_INVESTIMENTO",
+        repaymentHistory: [],
       });
 
-      payerMap[sponsor].totalPaid += investedAmount;
-      payerMap[sponsor].totalRepaid += costToRepay;
+      payerMap[sponsor].totalPaid = roundMoney(payerMap[sponsor].totalPaid + investedAmount);
+      payerMap[sponsor].totalRepaid = roundMoney(payerMap[sponsor].totalRepaid + costToRepay);
     });
 
     const payersReport = Object.values(payerMap).map((p) => {
-      const balance = Math.max(0, p.totalPaid - p.totalRepaid);
+      const balance = roundMoney(Math.max(0, p.totalPaid - p.totalRepaid));
       return {
         ...p,
         balanceToRepay: balance,
@@ -475,13 +587,20 @@ export class ExpensesService {
     });
 
     // Totais de Receitas Extras
-    const totalExtraIncomes = incomes.reduce((acc, inc) => acc + inc.amount, 0);
+    const totalExtraIncomes = roundMoney(
+      incomes.reduce((acc, inc) => acc + inc.amount, 0)
+    );
 
     // Total de Arrecadação Global do Evento (Receitas Extras + Lucro Líquido da Lojinha)
-    const totalAvailableEventFunds = totalExtraIncomes + lojinhaProfit;
+    const totalAvailableEventFunds = roundMoney(totalExtraIncomes + lojinhaProfit);
 
-    // Saldo Final do Retiro após quitar despesas
-    const finalEventBalance = totalAvailableEventFunds - totalExpensesAmount;
+    // Saldo Final Econômico do Retiro após cobrir todas as despesas
+    const finalEventBalance = roundMoney(totalAvailableEventFunds - totalExpensesAmount);
+
+    // DISPONIBILIDADE IMEDIATA NO CAIXA (Total de dinheiro físico/Pix arrecadado menos o que já foi devolvido aos irmãos)
+    const totalGrossRevenueCollected = roundMoney(totalExtraIncomes + lojinhaRevenue);
+    const totalActuallyPaidOut = roundMoney(totalExpensesRepaid + totalStoreRepaid);
+    const immediateCashAvailable = roundMoney(totalGrossRevenueCollected - totalActuallyPaidOut);
 
     return {
       summary: {
@@ -489,17 +608,20 @@ export class ExpensesService {
         totalInfraExpenses,
         totalOperExpenses,
         totalExpensesRepaid,
-        totalExpensesPendingRepay: totalExpensesAmount - totalExpensesRepaid,
+        totalExpensesPendingRepay: roundMoney(Math.max(0, totalExpensesAmount - totalExpensesRepaid)),
         totalDonatedItemsCount,
         totalStoreInvestment,
         totalStoreRepaid,
-        totalStorePendingRepay: totalStoreInvestment - totalStoreRepaid,
+        totalStorePendingRepay: roundMoney(Math.max(0, totalStoreInvestment - totalStoreRepaid)),
         totalExtraIncomes,
         lojinhaRevenue,
         lojinhaCost,
         lojinhaProfit,
         totalAvailableEventFunds,
         finalEventBalance,
+        immediateCashAvailable,
+        totalGrossRevenueCollected,
+        totalActuallyPaidOut,
       },
       categoryTotals,
       payersReport,

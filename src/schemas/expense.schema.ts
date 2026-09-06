@@ -4,6 +4,32 @@ import { Document, Types } from "mongoose";
 export type ExpenseItemStatus = "PENDENTE" | "REEMBOLSADO_PARCIAL" | "REEMBOLSADO" | "DOACAO";
 
 @Schema({ timestamps: true })
+export class RepaymentRecord {
+  @Prop({ type: Types.ObjectId, default: () => new Types.ObjectId() })
+  _id: Types.ObjectId;
+
+  @Prop({ required: true, type: Number })
+  amount: number;
+
+  @Prop({ default: Date.now })
+  date: Date;
+
+  @Prop({ required: true, default: "PIX" })
+  method: string; // PIX, DINHEIRO, TRANSFERENCIA, OUTRO
+
+  @Prop({ default: "" })
+  proofUrl?: string;
+
+  @Prop({ default: "Admin" })
+  operatorName?: string;
+
+  @Prop({ default: "" })
+  notes?: string;
+}
+
+export const RepaymentRecordSchema = SchemaFactory.createForClass(RepaymentRecord);
+
+@Schema({ timestamps: true })
 export class ExpenseItem {
   @Prop({ type: Types.ObjectId, default: () => new Types.ObjectId() })
   _id: Types.ObjectId;
@@ -41,6 +67,9 @@ export class ExpenseItem {
 
   @Prop({ default: Date.now })
   date?: Date;
+
+  @Prop({ type: [RepaymentRecordSchema], default: [] })
+  repaymentHistory: RepaymentRecord[];
 }
 
 export const ExpenseItemSchema = SchemaFactory.createForClass(ExpenseItem);

@@ -1,5 +1,21 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+} from "@nestjs/common";
 import { ExpensesService } from "./expenses.service";
+import { CreateExpenseGroupDto } from "./dto/create-expense-group.dto";
+import {
+  CreateExpenseItemDto,
+  UpdateExpenseItemDto,
+} from "./dto/create-expense-item.dto";
+import { AddRepaymentDto } from "./dto/add-repayment.dto";
+import { CreateIncomeDto } from "./dto/create-income.dto";
 
 @Controller("expenses")
 export class ExpensesController {
@@ -16,20 +32,32 @@ export class ExpensesController {
   }
 
   @Post()
-  async create(@Body() createDto: any) {
+  async create(@Body() createDto: CreateExpenseGroupDto) {
     return this.expensesService.create(createDto);
   }
 
   @Post(":id/items")
-  async addItem(@Param("id") id: string, @Body() itemDto: any) {
+  async addItem(
+    @Param("id") id: string,
+    @Body() itemDto: CreateExpenseItemDto
+  ) {
     return this.expensesService.addItem(id, itemDto);
+  }
+
+  @Post(":id/items/:itemId/repayments")
+  async addRepayment(
+    @Param("id") id: string,
+    @Param("itemId") itemId: string,
+    @Body() repaymentDto: AddRepaymentDto
+  ) {
+    return this.expensesService.addRepayment(id, itemId, repaymentDto);
   }
 
   @Patch(":id/items/:itemId")
   async updateItem(
     @Param("id") id: string,
     @Param("itemId") itemId: string,
-    @Body() updateDto: any
+    @Body() updateDto: UpdateExpenseItemDto
   ) {
     return this.expensesService.updateItem(id, itemId, updateDto);
   }
@@ -58,7 +86,7 @@ export class ExpensesController {
   }
 
   @Post("incomes")
-  async createIncome(@Body() incomeDto: any) {
+  async createIncome(@Body() incomeDto: CreateIncomeDto) {
     return this.expensesService.createIncome(incomeDto);
   }
 

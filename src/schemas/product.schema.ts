@@ -30,6 +30,9 @@ export class Product extends Document {
   @Prop({ type: Types.ObjectId, ref: "Category", index: true })
   categoryRef: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: "Event", index: true, required: false })
+  eventId?: Types.ObjectId;
+
   @Prop({ default: 5, type: Number })
   minStock: number;
 

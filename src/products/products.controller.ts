@@ -13,17 +13,30 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ProductsService } from "./products.service";
+import { CreateProductDto, UpdateProductDto, UpdateStockDto } from "./dto/product.dto";
+import { ImportPreviousStockDto } from "./dto/import-previous-stock.dto";
 
 @Controller("products")
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  async findAll(@Query("all") includeAll?: string) {
-    // json-server compat check: json-server fetches all by default
-    // We will return both active and inactive if includeAll is true or query matches
+  async findAll(
+    @Query("all") includeAll?: string,
+    @Query("eventId") eventId?: string
+  ) {
     const showAll = includeAll === "true" || includeAll !== undefined;
-    return this.productsService.findAll(showAll);
+    return this.productsService.findAll(showAll, eventId);
+  }
+
+  @Get("remaining-stock/:eventId")
+  async getRemainingStock(@Param("eventId") eventId: string) {
+    return this.productsService.getRemainingStockFromEvent(eventId);
+  }
+
+  @Post("import-stock-reconciliation")
+  async importStockReconciliation(@Body() dto: ImportPreviousStockDto) {
+    return this.productsService.importStockReconciliation(dto);
   }
 
   @Get(":id")
@@ -34,44 +47,31 @@ export class ProductsController {
   @Post()
   @UseInterceptors(FileInterceptor("image"))
   async create(
-    @Body() createProductDto: any,
+    @Body() createProductDto: CreateProductDto,
     @UploadedFile() file?: Express.Multer.File
   ) {
-    // Parse numeric fields from multipart text data
-    const payload = {
-      ...createProductDto,
-      price: createProductDto.price ? Number(createProductDto.price) : 0,
-      stock: createProductDto.stock ? Number(createProductDto.stock) : 0,
-      minStock: createProductDto.minStock ? Number(createProductDto.minStock) : 5,
-      active: createProductDto.active !== "false",
-    };
-    return this.productsService.create(payload, file);
+    return this.productsService.create(createProductDto, file);
   }
 
   @Put(":id")
   @UseInterceptors(FileInterceptor("image"))
   async update(
     @Param("id") id: string,
-    @Body() updateProductDto: any,
+    @Body() updateProductDto: UpdateProductDto,
     @UploadedFile() file?: Express.Multer.File
   ) {
-    const payload = {
-      ...updateProductDto,
-      price: updateProductDto.price ? Number(updateProductDto.price) : undefined,
-      stock: updateProductDto.stock ? Number(updateProductDto.stock) : undefined,
-      minStock: updateProductDto.minStock ? Number(updateProductDto.minStock) : undefined,
-      active: updateProductDto.active !== undefined ? updateProductDto.active !== "false" : undefined,
-    };
-    return this.productsService.update(id, payload, file);
+    return this.productsService.update(id, updateProductDto, file);
   }
 
   @Patch(":id")
-  async patchUpdate(@Param("id") id: string, @Body() body: any) {
-    const keys = Object.keys(body);
-    if (keys.length === 1 && body.stock !== undefined) {
+  async patchUpdate(
+    @Param("id") id: string,
+    @Body() body: UpdateStockDto | UpdateProductDto
+  ) {
+    if ("stock" in body && Object.keys(body).length === 1) {
       return this.productsService.updateStock(id, Number(body.stock));
     }
-    return this.productsService.update(id, body);
+    return this.productsService.update(id, body as UpdateProductDto);
   }
 
   @Delete(":id")
