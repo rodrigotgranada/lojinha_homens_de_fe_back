@@ -49,12 +49,68 @@ async function runSeed() {
   console.log("✨ Banco de dados limpo com sucesso.");
 
   if (isClean) {
-    console.log("\n✅ Modo --clean concluído. Banco de dados zerado.");
+    console.log("\n👤 Cadastrando os 3 Administradores padrão e estrutura inicial...");
+    await UserModel.insertMany([
+      {
+        cpf: "11111111111",
+        firstName: "Gabriel",
+        lastName: "Admin",
+        phone: "53988888881",
+        email: "gabriel.admin@homensdefe.com",
+        role: "ADMIN",
+        active: true,
+      },
+      {
+        cpf: "22222222222",
+        firstName: "Lucas",
+        lastName: "Admin",
+        phone: "53988888882",
+        email: "lucas.admin@homensdefe.com",
+        role: "ADMIN",
+        active: true,
+      },
+      {
+        cpf: "01268836028",
+        firstName: "Rodrigo",
+        lastName: "Granada",
+        phone: "53999429996",
+        email: "rodrigo.granada@homensdefe.com",
+        role: "ADMIN",
+        active: true,
+      },
+    ]);
+
+    await EventModel.create({
+      name: "Retiro Homens de Fé 2026",
+      status: "ATIVO",
+      isActive: true,
+      startDate: "2026-10-08",
+      endDate: "2026-10-11",
+    });
+
+    await CategoryModel.insertMany([
+      { name: "Vestuário" },
+      { name: "Livros & Bíblias" },
+      { name: "Acessórios" },
+      { name: "Alimentação & Bebidas" },
+      { name: "Outros" },
+    ]);
+
+    console.log("\n=======================================================");
+    console.log("🎉 BANCO DE DADOS ZERADO E PRONTO PARA PRODUÇÃO!");
+    console.log("   - Produtos: 0 (Vazio)");
+    console.log("   - Vendas / PDV: 0 (Vazio)");
+    console.log("   - Despesas & Obras: 0 (Vazio)");
+    console.log("   - Receitas Extras: 0 (Vazio)");
+    console.log("   - Usuários: 3 Administradores cadastrados");
+    console.log("   - Evento Ativo: Retiro Homens de Fé 2026");
+    console.log("=======================================================\n");
+
     await mongoose.disconnect();
     process.exit(0);
   }
 
-  console.log("\n📦 Inserindo dados realistas para testes de ponta a ponta...");
+  console.log("\n📦 Inserindo dados realistas para testes manuais de ponta a ponta...");
 
   // 2. Inserir Categorias
   const categories = await CategoryModel.insertMany([
@@ -71,29 +127,29 @@ async function runSeed() {
   const users = await UserModel.insertMany([
     {
       cpf: "11111111111",
-      firstName: "Rodrigo",
-      lastName: "Granada (Admin)",
-      phone: "51999991111",
-      email: "rodrigo.admin@lojinha.com",
+      firstName: "Gabriel",
+      lastName: "Admin",
+      phone: "53988888881",
+      email: "gabriel.admin@email.com",
       role: "ADMIN",
       active: true,
     },
     {
       cpf: "22222222222",
-      firstName: "Carlos",
-      lastName: "Eduardo (Voluntário Obras)",
-      phone: "51999992222",
-      email: "carlos.obras@igreja.com",
+      firstName: "Lucas",
+      lastName: "Admin",
+      phone: "53988888882",
+      email: "lucas.admin@email.com",
       role: "ADMIN",
       active: true,
     },
     {
       cpf: "33333333333",
-      firstName: "Mateus",
-      lastName: "Oliveira (Voluntário Cozinha)",
+      firstName: "Carlos",
+      lastName: "Eduardo (Voluntário Obras)",
       phone: "51999993333",
-      email: "mateus.cozinha@igreja.com",
-      role: "USER",
+      email: "carlos.obras@igreja.com",
+      role: "ADMIN",
       active: true,
     },
     {
@@ -114,22 +170,13 @@ async function runSeed() {
       role: "USER",
       active: true,
     },
-    {
-      cpf: "66666666666",
-      firstName: "Lucas",
-      lastName: "Mendes (Participante Inativo)",
-      phone: "51999996666",
-      email: "lucas.inativo@gmail.com",
-      role: "USER",
-      active: false,
-    },
   ]);
-  const [adminRodrigo, voluntarioCarlos, voluntarioMateus, clienteFelipe, clienteBruno] = users;
+  const [adminGabriel, adminLucas, voluntarioCarlos, clienteFelipe, clienteBruno] = users;
   console.log(`✔️ ${users.length} Usuários cadastrados.`);
 
-  // 4. Inserir Eventos (Retiro Anterior ENCERRADO e Retiro Atual ATIVO)
+  // 4. Inserir Eventos (Retiro Passado ENCERRADO de 2025 vs Retiro Atual ATIVO de 2026)
   const previousEvent = await EventModel.create({
-    name: "Retiro Homens de Fé 2025 (Edição Anterior)",
+    name: "Retiro Homens de Fé 2025 (Edição Anterior - Finalizado)",
     status: "ENCERRADO",
     isActive: false,
     location: "Sítio Recanto da Paz",
@@ -138,24 +185,24 @@ async function runSeed() {
   });
 
   const currentEvent = await EventModel.create({
-    name: "Retiro Homens de Fé 2026 (Edição Atual)",
+    name: "Retiro Homens de Fé 2026 (Edição Atual - Em Aberto)",
     status: "ATIVO",
     isActive: true,
     location: "Sítio Vale das Águas",
-    startDate: "2026-11-14",
-    endDate: "2026-11-16",
+    startDate: "2026-10-08",
+    endDate: "2026-10-11",
   });
   console.log(`✔️ 2 Eventos cadastrados (2025 Encerrado e 2026 Ativo).`);
 
-  // 5. Inserir Produtos no Evento Anterior (Para testar o módulo de Importação e Conciliação de Sobras)
+  // 5. Inserir Produtos no Evento Passado (2025) com Estoque Restante (Sobras para Importar)
   const prevProducts = await ProductModel.insertMany([
     {
       name: "Camiseta Oficial Retiro 2025",
       price: 65.0,
       costPrice: 32.0,
-      stock: 12, // Sobra de 12 unidades
+      stock: 15, // Sobra de 15 unidades que sobrou do evento passado
       initialStock: 80,
-      sponsorName: "Patrocínio Empresa Alpha",
+      sponsorName: "Doação Irmão Roberto",
       categoryRef: vestuarioCat._id,
       eventId: previousEvent._id,
       active: true,
@@ -165,7 +212,7 @@ async function runSeed() {
       name: "Bíblia de Estudos Homens de Fé (Capa Couro)",
       price: 130.0,
       costPrice: 75.0,
-      stock: 6, // Sobra de 6 unidades
+      stock: 8, // Sobra de 8 unidades
       initialStock: 30,
       sponsorName: "",
       categoryRef: livrosCat._id,
@@ -177,26 +224,27 @@ async function runSeed() {
       name: "Garrafa Térmica Inox 750ml",
       price: 55.0,
       costPrice: 24.0,
-      stock: 8, // Sobra de 8 unidades
+      stock: 10, // Sobra de 10 unidades
       initialStock: 50,
-      sponsorName: "Irmão Roberto",
+      sponsorName: "Patrocínio Comercial",
       categoryRef: acessoriosCat._id,
       eventId: previousEvent._id,
       active: true,
       minStock: 5,
     },
   ]);
-  console.log(`✔️ ${prevProducts.length} Produtos com sobra cadastrados no evento de 2025.`);
+  console.log(`✔️ ${prevProducts.length} Produtos com sobras cadastrados no evento anterior (2025).`);
 
-  // 6. Inserir Produtos no Evento Atual (2026)
+  // 6. Inserir Produtos no Evento Atual (2026) Prontos para Testar Importação
   const currentProducts = await ProductModel.insertMany([
     {
       name: "Camiseta Oficial Retiro 2026 (Branca/Azul)",
       price: 70.0,
       costPrice: 35.0,
-      stock: 60,
-      initialStock: 60,
+      stock: 50,
+      initialStock: 50,
       sponsorName: "Doação Gráfica Esperança",
+      isDonation: true, // DOAÇÃO - Não gera reembolso
       categoryRef: vestuarioCat._id,
       eventId: currentEvent._id,
       active: true,
@@ -206,9 +254,10 @@ async function runSeed() {
       name: "Boné Bordado Homens de Fé",
       price: 45.0,
       costPrice: 20.0,
-      stock: 40,
-      initialStock: 40,
+      stock: 30,
+      initialStock: 30,
       sponsorName: "",
+      isDonation: false,
       categoryRef: vestuarioCat._id,
       eventId: currentEvent._id,
       active: true,
@@ -218,9 +267,10 @@ async function runSeed() {
       name: "Livro: A Jornada do Homem de Oração",
       price: 40.0,
       costPrice: 18.0,
-      stock: 25,
-      initialStock: 25,
+      stock: 20,
+      initialStock: 20,
       sponsorName: "",
+      isDonation: false,
       categoryRef: livrosCat._id,
       eventId: currentEvent._id,
       active: true,
@@ -230,155 +280,121 @@ async function runSeed() {
       name: "Chaveiro Resinado Cruz de Metal",
       price: 15.0,
       costPrice: 4.5,
-      stock: 50,
-      initialStock: 50,
+      stock: 40,
+      initialStock: 40,
       sponsorName: "Irmã Maria",
+      isDonation: false, // Investimento de R$ 180,00 a ser devolvido com as vendas
       categoryRef: acessoriosCat._id,
       eventId: currentEvent._id,
       active: true,
       minStock: 10,
     },
-    {
-      name: "Café Especial & Cookie Artesanal",
-      price: 12.0,
-      costPrice: 5.0,
-      stock: 80,
-      initialStock: 80,
-      sponsorName: "",
-      categoryRef: alimentacaoCat._id,
-      eventId: currentEvent._id,
-      active: true,
-      minStock: 15,
-    },
   ]);
-  console.log(`✔️ ${currentProducts.length} Produtos cadastrados no evento de 2026.`);
+  console.log(`✔️ ${currentProducts.length} Produtos cadastrados no evento atual (2026).`);
 
-  // 7. Inserir Despesas & Obras com Itens e Reembolsos Parciais
-  await ExpenseModel.insertMany([
-    {
-      eventId: currentEvent._id,
-      title: "Reforma e Elétrica dos Banheiros do Sítio",
-      category: "OBRA",
-      nature: "INFRAESTRUTURA",
-      description: "Instalação de chuveiros 220V e fiação reforçada",
-      totalAmount: 470.0,
-      totalRepaid: 200.0,
-      items: [
-        {
-          _id: new Types.ObjectId(),
-          description: "2 Chuveiros Blindados Fame + Fiação 6mm",
-          amount: 320.0,
-          paidBy: "Carlos Eduardo (Voluntário Obras)",
-          payerPhone: "51999992222",
-          isDonation: false,
-          status: "REEMBOLSADO_PARCIAL",
-          repaidAmount: 200.0,
-          repaymentHistory: [
-            {
-              _id: new Types.ObjectId(),
-              amount: 200.0,
-              date: new Date(Date.now() - 86400000),
-              method: "PIX",
-              operatorName: "Rodrigo Granada",
-            },
-          ],
-        },
-        {
-          _id: new Types.ObjectId(),
-          description: "Disjuntores 40A e Caixas de Tomadas",
-          amount: 150.0,
-          paidBy: "Carlos Eduardo (Voluntário Obras)",
-          payerPhone: "51999992222",
-          isDonation: false,
-          status: "PENDENTE",
-          repaidAmount: 0.0,
-          repaymentHistory: [],
-        },
-        {
-          _id: new Types.ObjectId(),
-          description: "Fitas Isolantes e Lâmpadas LED (Doação)",
-          amount: 0.0,
-          paidBy: "Carlos Eduardo (Voluntário Obras)",
-          payerPhone: "51999992222",
-          isDonation: true,
-          status: "DOACAO",
-          repaidAmount: 0.0,
-          notes: "Irmão Carlos doou o material elétrico excedente de sua oficina",
-          repaymentHistory: [],
-        },
-      ],
-    },
-    {
-      eventId: currentEvent._id,
-      title: "Rancho de Alimentação & Gás da Cozinha",
-      category: "ALIMENTACAO",
-      nature: "OPERACIONAL",
-      description: "Carnes para churrasco de sábado e botijões de gás",
-      totalAmount: 420.0,
-      totalRepaid: 240.0,
-      items: [
-        {
-          _id: new Types.ObjectId(),
-          description: "2 Botijões de Gás P13 para Cozinha",
-          amount: 240.0,
-          paidBy: "Mateus Oliveira (Voluntário Cozinha)",
-          payerPhone: "51999993333",
-          isDonation: false,
-          status: "REEMBOLSADO",
-          repaidAmount: 240.0,
-          repaymentHistory: [
-            {
-              _id: new Types.ObjectId(),
-              amount: 240.0,
-              date: new Date(Date.now() - 43200000),
-              method: "DINHEIRO",
-              operatorName: "Rodrigo Granada",
-            },
-          ],
-        },
-        {
-          _id: new Types.ObjectId(),
-          description: "Verduras, Frutas e Pães para Café da Manhã",
-          amount: 180.0,
-          paidBy: "Mateus Oliveira (Voluntário Cozinha)",
-          payerPhone: "51999993333",
-          isDonation: false,
-          status: "PENDENTE",
-          repaidAmount: 0.0,
-          repaymentHistory: [],
-        },
-      ],
-    },
-  ]);
-  console.log(`✔️ 2 Grupos de Despesas cadastrados com itens Quitados, Parciais, Pendentes e Doações.`);
+  // 7. Despesas de Infraestrutura e Operacionais nos 2 Eventos
+  // a) Despesas do Evento Passado (2025)
+  await ExpenseModel.create({
+    eventId: previousEvent._id,
+    title: "Benfeitorias e Infraestrutura Retiro 2025",
+    category: "OBRA",
+    nature: "INFRAESTRUTURA",
+    description: "Estrutura do rancho e equipamentos da cozinha",
+    totalAmount: 2400.0,
+    totalRepaid: 600.0,
+    items: [
+      {
+        _id: new Types.ObjectId(),
+        description: "Fogão Industrial de 4 Bocas com Forno",
+        amount: 1800.0,
+        paidBy: "Gabriel Admin",
+        payerPhone: "53988888881",
+        isDonation: true, // DOAÇÃO - R$ 0 reembolso
+        status: "DOACAO",
+        repaidAmount: 0.0,
+        notes: "Fogão doado pelo Gabriel Admin para o retiro (sem reembolso)",
+        repaymentHistory: [],
+      },
+      {
+        _id: new Types.ObjectId(),
+        description: "Tintas e Pincéis para Reforma da Cozinha",
+        amount: 600.0,
+        paidBy: "Gabriel Admin",
+        payerPhone: "53988888881",
+        isDonation: false,
+        status: "REEMBOLSADO",
+        repaidAmount: 600.0,
+        repaymentHistory: [
+          {
+            _id: new Types.ObjectId(),
+            amount: 600.0,
+            date: new Date("2025-10-12"),
+            method: "PIX",
+            operatorName: "Lucas Admin",
+          },
+        ],
+      },
+    ],
+  });
 
-  // 8. Inserir Receitas Extras do Evento
+  // b) Despesas do Evento Atual (2026)
+  await ExpenseModel.create({
+    eventId: currentEvent._id,
+    title: "Obras e Infraestrutura da Casa Central (Retiro 2026)",
+    category: "OBRA",
+    nature: "INFRAESTRUTURA",
+    description: "Reforma do piso e pintura externa",
+    totalAmount: 1600.0,
+    totalRepaid: 0.0,
+    items: [
+      {
+        _id: new Types.ObjectId(),
+        description: "Piso Cerâmico e Argamassa da Casa Central",
+        amount: 1000.0,
+        paidBy: "Gabriel Admin",
+        payerPhone: "53988888881",
+        isDonation: false,
+        status: "PENDENTE",
+        repaidAmount: 0.0,
+        notes: "Piso comprado por Gabriel Admin. Aguardando reembolso após o evento.",
+        repaymentHistory: [],
+      },
+      {
+        _id: new Types.ObjectId(),
+        description: "Pintura Externa da Casa Central",
+        amount: 600.0,
+        paidBy: "Lucas Admin",
+        payerPhone: "53988888882",
+        isDonation: false,
+        status: "PENDENTE",
+        repaidAmount: 0.0,
+        notes: "Tintas compradas por Lucas Admin.",
+        repaymentHistory: [],
+      },
+    ],
+  });
+  console.log(`✔️ Despesas de Infraestrutura/Obras cadastradas para ambos os eventos.`);
+
+  // 8. Receitas Extras (Inscrições, Rifa, Doações)
   await EventIncomeModel.insertMany([
     {
       eventId: currentEvent._id,
-      title: "Inscrições do Retiro - 1º Lote (40 Participantes)",
+      title: "Inscrições do Retiro 2026 - 1º Lote (40 Participantes)",
       type: "INSCRICOES",
       amount: 4800.0,
-      notes: "40 inscrições pagas via Pix para a conta da igreja",
+      notes: "40 inscrições pagas via Pix para a conta oficial",
     },
     {
       eventId: currentEvent._id,
-      title: "Rifa Beneficente de Uma Bicicleta",
+      title: "Rifa Beneficente Pré-Retiro",
       type: "RIFA",
       amount: 1200.0,
-      notes: "Arrecadação total da rifa de pré-retiro",
-    },
-    {
-      eventId: currentEvent._id,
-      title: "Oferta e Doação Espontânea de Famílias",
-      type: "DOACAO",
-      amount: 600.0,
-      notes: "Oferta destinada a cobrir custos de infraestrutura",
+      notes: "Arrecadação da rifa beneficente",
     },
   ]);
-  console.log(`✔️ 3 Receitas Extras cadastradas (Inscrições, Rifa e Doações).`);
+  console.log(`✔️ Receitas extras cadastradas.`);
 
-  // 9. Inserir Vendas no PDV
+  // 9. Vendas no PDV no Evento Atual
   await SaleModel.insertMany([
     {
       customerId: clienteFelipe._id,
@@ -397,13 +413,13 @@ async function runSeed() {
           priceAtPurchase: 45.0,
         },
       ],
-      operatorId: adminRodrigo.id,
+      operatorId: adminGabriel.id,
       createdAt: new Date(),
     },
     {
       customerId: clienteBruno._id,
       eventId: currentEvent._id,
-      totalPrice: 52.0,
+      totalPrice: 40.0,
       status: "PENDENTE", // Fiado
       items: [
         {
@@ -411,37 +427,20 @@ async function runSeed() {
           quantity: 1,
           priceAtPurchase: 40.0,
         },
-        {
-          productId: currentProducts[4]._id, // Café & Cookie (12,00)
-          quantity: 1,
-          priceAtPurchase: 12.0,
-        },
       ],
-      operatorId: adminRodrigo.id,
+      operatorId: adminGabriel.id,
       createdAt: new Date(),
     },
   ]);
-  console.log(`✔️ 2 Vendas cadastradas no PDV (1 Paga e 1 Pendente).`);
-
-  // 10. Inserir Logs de Auditoria
-  await LogModel.insertMany([
-    {
-      userId: adminRodrigo.id,
-      userName: "Rodrigo Granada (Admin)",
-      action: "system_seed",
-      description: "Banco de dados populado com dados de teste para o Retiro 2026",
-      metadata: { eventId: currentEvent.id },
-    },
-  ]);
+  console.log(`✔️ Vendas de teste no PDV salvas.`);
 
   console.log(`\n======================================================`);
-  console.log(`🎉 [SEED CONCLUÍDO COM SUCESSO!]`);
+  console.log(`🎉 [SEED DE TESTES MANUAIS CONCLUÍDO COM SUCESSO!]`);
   console.log(`======================================================`);
-  console.log(`👤 Login Admin: CPF 11111111111 (Rodrigo Granada)`);
-  console.log(`👤 Voluntário Obras: CPF 22222222222 (Carlos Eduardo)`);
-  console.log(`👤 Participante Comum: CPF 44444444444 (Felipe Santos)`);
-  console.log(`🏆 Evento Ativo: "Retiro Homens de Fé 2026"`);
-  console.log(`📦 Evento Passado p/ Importar Sobras: "Retiro Homens de Fé 2025"`);
+  console.log(`👤 Gabriel Admin (CPF: 11111111111 | Senha: 53988888881)`);
+  console.log(`👤 Lucas Admin (CPF: 22222222222 | Senha: 53988888882)`);
+  console.log(`🏆 Evento Ativo (Em Aberto): "Retiro Homens de Fé 2026"`);
+  console.log(`📦 Evento Passado (Finalizado): "Retiro Homens de Fé 2025"`);
   console.log(`======================================================\n`);
 
   await mongoose.disconnect();

@@ -412,6 +412,8 @@ export class ExpensesService {
     let totalDonatedItemsCount = 0;
     let totalInfraExpenses = 0;
     let totalOperExpenses = 0;
+    let totalStoreInvestment = 0;
+    let totalStoreRepaid = 0;
 
     // Extrato por Irmão / Financiador
     const payerMap: Record<
@@ -453,8 +455,13 @@ export class ExpensesService {
         exp.category === "LOCACAO" ||
         exp.category === "ESTRUTURA";
 
+      const isLojinha = exp.nature === "LOJINHA_INVESTIMENTO" || exp.nature === "LOJINHA_DOACAO" || exp.category === "LOJINHA";
+
       if (isInfra) {
         totalInfraExpenses = roundMoney(totalInfraExpenses + exp.totalAmount);
+      } else if (isLojinha) {
+        totalStoreInvestment = roundMoney(totalStoreInvestment + exp.totalAmount);
+        totalStoreRepaid = roundMoney(totalStoreRepaid + exp.totalRepaid);
       } else {
         totalOperExpenses = roundMoney(totalOperExpenses + exp.totalAmount);
       }
@@ -490,7 +497,7 @@ export class ExpensesService {
           repaidAmount: roundMoney(item.repaidAmount),
           status: item.status,
           isDonation: item.isDonation,
-          nature: exp.nature || (isInfra ? "INFRAESTRUTURA" : "OPERACIONAL"),
+          nature: exp.nature || (isInfra ? "INFRAESTRUTURA" : isLojinha ? "LOJINHA_INVESTIMENTO" : "OPERACIONAL"),
           repaymentHistory: item.repaymentHistory || [],
         });
 
@@ -505,84 +512,16 @@ export class ExpensesService {
       });
     });
 
-    // 4. Buscar produtos da Lojinha com Investidores/Patrocinadores vinculados
-    const allProducts = await this.productModel
-      .find({
-        active: { $ne: false },
-        ...(objEventId ? { $or: [{ eventId: objEventId }, { eventId: null }, { eventId: { $exists: false } }] } : {}),
-      })
-      .exec();
-
-    let totalStoreInvestment = 0;
-    let totalStoreRepaid = 0;
-
-    allProducts.forEach((prod) => {
-      const sponsor = (prod.sponsorName || "").trim();
-      if (!sponsor) return;
-
-      const prodCost = prod.costPrice || 0;
-      const initialStock =
-        prod.initialStock && prod.initialStock > 0 ? prod.initialStock : prod.stock;
-      const investedAmount = roundMoney(initialStock * prodCost);
-
-      // Calcular quantas unidades desse produto já foram vendidas
-      const soldQty = sales.reduce((acc, s) => {
-        return (
-          acc +
-          s.items.reduce((sum, it) => {
-            const itId =
-              (it.productId as any)?._id?.toString() || it.productId?.toString();
-            return itId === prod._id.toString() ? sum + it.quantity : sum;
-          }, 0)
-        );
-      }, 0);
-
-      const costToRepay = roundMoney(soldQty * prodCost);
-
-      totalStoreInvestment = roundMoney(totalStoreInvestment + investedAmount);
-      totalStoreRepaid = roundMoney(totalStoreRepaid + costToRepay);
-
-      if (!payerMap[sponsor]) {
-        payerMap[sponsor] = {
-          payerName: sponsor,
-          payerPhone: (prod as any).sponsorCpf || "Investidor Lojinha",
-          items: [],
-          totalPaid: 0,
-          totalRepaid: 0,
-          balanceToRepay: 0,
-          isFullyRepaid: false,
-          donationsCount: 0,
-        };
-      }
-
-      payerMap[sponsor].items.push({
-        expenseId: "store-prod",
-        itemId: prod._id.toString(),
-        expenseTitle: `Confecção Lojinha (${prod.name})`,
-        description: `Tiragem de ${initialStock} unids a R$ ${prodCost.toFixed(2)} (${soldQty} vendidas)`,
-        amount: investedAmount,
-        repaidAmount: costToRepay,
-        status:
-          costToRepay >= investedAmount
-            ? "REEMBOLSADO"
-            : costToRepay > 0
-            ? "REEMBOLSADO_PARCIAL"
-            : "PENDENTE",
-        isDonation: false,
-        nature: "LOJINHA_INVESTIMENTO",
-        repaymentHistory: [],
-      });
-
-      payerMap[sponsor].totalPaid = roundMoney(payerMap[sponsor].totalPaid + investedAmount);
-      payerMap[sponsor].totalRepaid = roundMoney(payerMap[sponsor].totalRepaid + costToRepay);
-    });
+    // A lógica de Lojinha Produtos (calculada por custo/dívida) foi removida. 
+    // Dívidas da lojinha agora são calculadas integralmente pelos ExpenseItems.
+    const storeProductsReport: any[] = [];
 
     const payersReport = Object.values(payerMap).map((p) => {
       const balance = roundMoney(Math.max(0, p.totalPaid - p.totalRepaid));
       return {
         ...p,
         balanceToRepay: balance,
-        isFullyRepaid: p.totalPaid > 0 && balance === 0,
+        isFullyRepaid: p.totalPaid > 0 ? balance === 0 : true,
       };
     });
 
@@ -591,15 +530,17 @@ export class ExpensesService {
       incomes.reduce((acc, inc) => acc + inc.amount, 0)
     );
 
-    // Total de Arrecadação Global do Evento (Receitas Extras + Lucro Líquido da Lojinha)
-    const totalAvailableEventFunds = roundMoney(totalExtraIncomes + lojinhaProfit);
+    // Total de Arrecadação Global do Evento (Receitas Extras + Receita Bruta da Lojinha)
+    // O custo da lojinha já está somado em totalExpensesAmount
+    const totalAvailableEventFunds = roundMoney(totalExtraIncomes + lojinhaRevenue);
 
     // Saldo Final Econômico do Retiro após cobrir todas as despesas
     const finalEventBalance = roundMoney(totalAvailableEventFunds - totalExpensesAmount);
 
     // DISPONIBILIDADE IMEDIATA NO CAIXA (Total de dinheiro físico/Pix arrecadado menos o que já foi devolvido aos irmãos)
+    // totalActuallyPaidOut engloba todos os pagamentos feitos (totalExpensesRepaid contém as despesas da lojinha também)
     const totalGrossRevenueCollected = roundMoney(totalExtraIncomes + lojinhaRevenue);
-    const totalActuallyPaidOut = roundMoney(totalExpensesRepaid + totalStoreRepaid);
+    const totalActuallyPaidOut = roundMoney(totalExpensesRepaid);
     const immediateCashAvailable = roundMoney(totalGrossRevenueCollected - totalActuallyPaidOut);
 
     return {
@@ -627,6 +568,7 @@ export class ExpensesService {
       payersReport,
       expenses,
       incomes,
+      storeProductsReport,
     };
   }
 }

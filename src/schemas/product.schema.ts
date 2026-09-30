@@ -13,13 +13,10 @@ export class Product extends Document {
   stock: number;
 
   @Prop({ default: 0, type: Number })
-  costPrice: number;
-
-  @Prop({ default: "" })
-  sponsorName: string;
-
-  @Prop({ default: 0, type: Number })
   initialStock: number;
+
+  @Prop({ type: Types.ObjectId, ref: "Product" })
+  importedFrom?: Types.ObjectId;
 
   @Prop({ default: "" })
   imageUrl: string;

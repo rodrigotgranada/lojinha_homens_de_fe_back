@@ -34,22 +34,20 @@ export class SalesService {
   }
 
   async create(createSaleDto: CreateSaleDto): Promise<Sale> {
+    const decrementedItems: { productId: string; quantity: number }[] = [];
+
     if (createSaleDto.items && Array.isArray(createSaleDto.items)) {
       for (const item of createSaleDto.items) {
         if (item.costAtPurchase === undefined || item.costAtPurchase === null) {
-          try {
-            const prod = await this.productsService.findOne(item.productId);
-            item.costAtPurchase = prod?.costPrice || 0;
-          } catch (e) {
-            item.costAtPurchase = 0;
-          }
+          item.costAtPurchase = 0;
         }
         item.priceAtPurchase = roundMoney(item.priceAtPurchase);
         item.costAtPurchase = roundMoney(item.costAtPurchase || 0);
 
-        // Baixa atômica no estoque do produto ($inc negativo)
+        // Baixa no estoque
         try {
           await this.productsService.incrementStock(item.productId, -item.quantity);
+          decrementedItems.push({ productId: item.productId, quantity: item.quantity });
         } catch (err) {
           console.error(`Falha ao decrementar estoque de ${item.productId}:`, err);
         }
@@ -58,10 +56,28 @@ export class SalesService {
 
     createSaleDto.totalPrice = roundMoney(createSaleDto.totalPrice);
     const createdSale = new this.saleModel(createSaleDto);
-    return createdSale.save();
+
+    try {
+      return await createdSale.save();
+    } catch (saveError) {
+      console.error("Falha ao salvar a venda, iniciando rollback de estoque:", saveError);
+      // Rollback manual (compensação) se o banco não for replica set
+      for (const item of decrementedItems) {
+        try {
+          await this.productsService.incrementStock(item.productId, item.quantity);
+        } catch (rollbackErr) {
+          console.error(`Falha no rollback de estoque para ${item.productId}:`, rollbackErr);
+        }
+      }
+      throw new BadRequestException("Falha ao processar a venda. O estoque foi restaurado.");
+    }
   }
 
   async updateStatus(id: string, status: string): Promise<Sale> {
+    if (status === "CANCELADO") {
+      throw new BadRequestException("Use o endpoint de cancelamento explícito (/sales/:id/cancel) para cancelar vendas e estornar estoque.");
+    }
+
     const updated = await this.saleModel
       .findByIdAndUpdate(id, { status }, { new: true, returnDocument: 'after' as any })
       .populate("customerId")

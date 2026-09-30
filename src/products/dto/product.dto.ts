@@ -23,16 +23,6 @@ export class CreateProductDto {
   @Type(() => Number)
   stock: number;
 
-  @IsNumber({}, { message: "O preço de custo deve ser numérico" })
-  @Min(0, { message: "O preço de custo não pode ser negativo" })
-  @IsOptional()
-  @Type(() => Number)
-  costPrice?: number;
-
-  @IsString()
-  @IsOptional()
-  sponsorName?: string;
-
   @IsNumber({}, { message: "O estoque inicial deve ser numérico" })
   @IsOptional()
   @Type(() => Number)
@@ -76,16 +66,6 @@ export class UpdateProductDto {
   @IsOptional()
   @Type(() => Number)
   stock?: number;
-
-  @IsNumber({}, { message: "O preço de custo deve ser numérico" })
-  @Min(0, { message: "O preço de custo não pode ser negativo" })
-  @IsOptional()
-  @Type(() => Number)
-  costPrice?: number;
-
-  @IsString()
-  @IsOptional()
-  sponsorName?: string;
 
   @IsNumber({}, { message: "O estoque inicial deve ser numérico" })
   @IsOptional()

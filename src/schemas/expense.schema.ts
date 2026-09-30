@@ -87,10 +87,10 @@ export class Expense extends Document {
 
   @Prop({
     required: true,
-    enum: ["INFRAESTRUTURA", "OPERACIONAL"],
+    enum: ["INFRAESTRUTURA", "OPERACIONAL", "LOJINHA_INVESTIMENTO", "LOJINHA_DOACAO"],
     default: "INFRAESTRUTURA",
   })
-  nature: "INFRAESTRUTURA" | "OPERACIONAL"; // INFRAESTRUTURA (Obras/Pré-evento) vs OPERACIONAL (Consumíveis/Durante evento)
+  nature: "INFRAESTRUTURA" | "OPERACIONAL" | "LOJINHA_INVESTIMENTO" | "LOJINHA_DOACAO"; // INFRAESTRUTURA (Obras/Pré-evento) vs OPERACIONAL (Consumíveis/Durante evento) vs LOJINHA
 
   @Prop({ default: "" })
   description?: string;

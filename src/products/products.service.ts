@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import { Product } from "../schemas/product.schema";
@@ -11,6 +11,8 @@ import { ImportPreviousStockDto } from "./dto/import-previous-stock.dto";
 
 @Injectable()
 export class ProductsService {
+  private readonly logger = new Logger(ProductsService.name);
+
   constructor(
     @InjectModel(Product.name) private productModel: Model<Product>,
     @InjectModel(Category.name) private categoryModel: Model<Category>,
@@ -49,7 +51,7 @@ export class ProductsService {
   }
 
   async create(createProductDto: CreateProductDto, file?: Express.Multer.File): Promise<Product> {
-    console.log(`[ProductsService] Creating product: "${createProductDto.name}"`);
+    this.logger.log(`Creating product: "${createProductDto.name}"`);
     const { category, eventId, ...rest } = createProductDto;
     const cat = await this.getOrCreateCategory(category || "Outros");
 
@@ -263,8 +265,7 @@ export class ProductsService {
           price: prevProduct.price,
           stock: importQty,
           initialStock: importQty,
-          costPrice: prevProduct.costPrice || 0,
-          sponsorName: prevProduct.sponsorName || "",
+          importedFrom: prevProduct._id,
           imageUrl: prevProduct.imageUrl || "",
           active: true,
           categoryRef: prevProduct.categoryRef,
