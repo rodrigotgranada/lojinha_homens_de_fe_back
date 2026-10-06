@@ -55,7 +55,7 @@ async function runSeed() {
         cpf: "11111111111",
         firstName: "Gabriel",
         lastName: "Admin",
-        phone: "53988888881",
+        phone: "53111111111",
         email: "gabriel.admin@homensdefe.com",
         role: "ADMIN",
         active: true,
@@ -64,7 +64,7 @@ async function runSeed() {
         cpf: "22222222222",
         firstName: "Lucas",
         lastName: "Admin",
-        phone: "53988888882",
+        phone: "53222222222",
         email: "lucas.admin@homensdefe.com",
         role: "ADMIN",
         active: true,
@@ -129,7 +129,7 @@ async function runSeed() {
       cpf: "11111111111",
       firstName: "Gabriel",
       lastName: "Admin",
-      phone: "53988888881",
+      phone: "53111111111",
       email: "gabriel.admin@email.com",
       role: "ADMIN",
       active: true,
@@ -138,8 +138,17 @@ async function runSeed() {
       cpf: "22222222222",
       firstName: "Lucas",
       lastName: "Admin",
-      phone: "53988888882",
+      phone: "53222222222",
       email: "lucas.admin@email.com",
+      role: "ADMIN",
+      active: true,
+    },
+    {
+      cpf: "01268836028",
+      firstName: "Rodrigo",
+      lastName: "Granada",
+      phone: "53999429996",
+      email: "rodrigo.granada@homensdefe.com",
       role: "ADMIN",
       active: true,
     },
@@ -437,8 +446,9 @@ async function runSeed() {
   console.log(`\n======================================================`);
   console.log(`🎉 [SEED DE TESTES MANUAIS CONCLUÍDO COM SUCESSO!]`);
   console.log(`======================================================`);
-  console.log(`👤 Gabriel Admin (CPF: 11111111111 | Senha: 53988888881)`);
-  console.log(`👤 Lucas Admin (CPF: 22222222222 | Senha: 53988888882)`);
+  console.log(`👤 Gabriel Admin (CPF: 11111111111 | Senha: 53111111111)`);
+  console.log(`👤 Lucas Admin (CPF: 22222222222 | Senha: 53222222222)`);
+  console.log(`👤 Rodrigo Granada (CPF: 01268836028 | Senha: 53999429996)`);
   console.log(`🏆 Evento Ativo (Em Aberto): "Retiro Homens de Fé 2026"`);
   console.log(`📦 Evento Passado (Finalizado): "Retiro Homens de Fé 2025"`);
   console.log(`======================================================\n`);
