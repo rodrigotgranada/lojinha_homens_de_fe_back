@@ -18,6 +18,7 @@ const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const sale_schema_1 = require("../schemas/sale.schema");
 const product_schema_1 = require("../schemas/product.schema");
+const money_util_1 = require("../common/utils/money.util");
 let SalesAnalyticsService = class SalesAnalyticsService {
     saleModel;
     productModel;
@@ -34,53 +35,55 @@ let SalesAnalyticsService = class SalesAnalyticsService {
                     totalSalesCount: 0,
                     pagoCount: 0,
                     pendenteCount: 0,
-                    ticketMedio: 0
+                    ticketMedio: 0,
                 },
                 topSellingProducts: [],
                 topBuyers: [],
-                salesTimeline: []
+                salesTimeline: [],
             };
         }
         const saleEventId = new mongoose_2.Types.ObjectId(eventId);
-        console.log(`[SalesAnalyticsService] Querying sales for eventId: "${eventId}" (ObjectId: ${saleEventId.toString()})`);
         const sales = await this.saleModel
             .find({
             $or: [
                 { eventId: saleEventId },
-                { eventId: eventId }
+                { eventId: eventId },
             ],
-            status: { $ne: "CANCELADO" }
+            status: { $ne: "CANCELADO" },
         })
             .populate({
             path: "items.productId",
-            populate: { path: "categoryRef" }
+            populate: { path: "categoryRef" },
         })
             .populate("customerId")
             .exec();
-        console.log(`[SalesAnalyticsService] Found ${sales.length} sales matching eventId ${eventId}`);
-        const totalRevenue = sales
+        const totalRevenue = (0, money_util_1.roundMoney)(sales
             .filter((s) => s.status === "PAGO")
-            .reduce((acc, s) => acc + s.totalPrice, 0);
-        const pendingRevenue = sales
+            .reduce((acc, s) => acc + s.totalPrice, 0));
+        const pendingRevenue = (0, money_util_1.roundMoney)(sales
             .filter((s) => s.status === "PENDENTE")
-            .reduce((acc, s) => acc + s.totalPrice, 0);
-        const totalCost = sales
+            .reduce((acc, s) => acc + s.totalPrice, 0));
+        const totalCost = (0, money_util_1.roundMoney)(sales
             .filter((s) => s.status === "PAGO")
             .reduce((acc, s) => {
             const saleCost = s.items.reduce((sum, item) => {
                 const prodObj = item.productId;
                 const currentProdCost = prodObj?.costPrice ?? 0;
-                const itemCost = (item.costAtPurchase && item.costAtPurchase > 0) ? item.costAtPurchase : currentProdCost;
-                return sum + (item.quantity * itemCost);
+                const itemCost = item.costAtPurchase && item.costAtPurchase > 0
+                    ? item.costAtPurchase
+                    : currentProdCost;
+                return sum + item.quantity * itemCost;
             }, 0);
             return acc + saleCost;
-        }, 0);
-        const totalProfit = totalRevenue - totalCost;
-        const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+        }, 0));
+        const totalProfit = (0, money_util_1.roundMoney)(totalRevenue - totalCost);
+        const profitMargin = totalRevenue > 0 ? (0, money_util_1.roundMoney)((totalProfit / totalRevenue) * 100) : 0;
         const totalSalesCount = sales.length;
         const pagoCount = sales.filter((s) => s.status === "PAGO").length;
         const pendenteCount = sales.filter((s) => s.status === "PENDENTE").length;
-        const ticketMedio = totalSalesCount > 0 ? (totalRevenue + pendingRevenue) / totalSalesCount : 0;
+        const ticketMedio = totalSalesCount > 0
+            ? (0, money_util_1.roundMoney)((totalRevenue + pendingRevenue) / totalSalesCount)
+            : 0;
         const productStats = {};
         sales.forEach((sale) => {
             sale.items.forEach((item) => {
@@ -92,7 +95,9 @@ let SalesAnalyticsService = class SalesAnalyticsService {
                 const categoryName = prod.categoryRef?.name || "Outros";
                 const sponsorName = prod.sponsorName || "Retiro / Sem Patrocinador";
                 const currentProdCost = prod.costPrice ?? 0;
-                const itemCost = (item.costAtPurchase && item.costAtPurchase > 0) ? item.costAtPurchase : currentProdCost;
+                const itemCost = item.costAtPurchase && item.costAtPurchase > 0
+                    ? item.costAtPurchase
+                    : currentProdCost;
                 if (!productStats[prodId]) {
                     productStats[prodId] = {
                         name: prodName,
@@ -101,28 +106,58 @@ let SalesAnalyticsService = class SalesAnalyticsService {
                         cost: 0,
                         profit: 0,
                         category: categoryName,
-                        sponsorName
+                        sponsorName,
                     };
                 }
-                const itemRev = item.quantity * item.priceAtPurchase;
-                const itemTotalCost = item.quantity * itemCost;
+                const itemRev = (0, money_util_1.roundMoney)(item.quantity * item.priceAtPurchase);
+                const itemTotalCost = (0, money_util_1.roundMoney)(item.quantity * itemCost);
                 productStats[prodId].quantity += item.quantity;
-                productStats[prodId].revenue += itemRev;
-                productStats[prodId].cost += itemTotalCost;
-                productStats[prodId].profit += (itemRev - itemTotalCost);
+                productStats[prodId].revenue = (0, money_util_1.roundMoney)(productStats[prodId].revenue + itemRev);
+                productStats[prodId].cost = (0, money_util_1.roundMoney)(productStats[prodId].cost + itemTotalCost);
+                productStats[prodId].profit = (0, money_util_1.roundMoney)(productStats[prodId].profit + (itemRev - itemTotalCost));
             });
         });
         const topSellingProducts = Object.values(productStats)
             .sort((a, b) => b.quantity - a.quantity)
             .slice(0, 10);
-        const allProducts = await this.productModel.find({ active: { $ne: false } }).exec();
-        const investorMap = {};
-        allProducts.forEach((prod) => {
-            const sponsor = (prod.sponsorName || "").trim();
-            if (!sponsor)
-                return;
-            if (!investorMap[sponsor]) {
-                investorMap[sponsor] = {
+        const eventProducts = await this.productModel.find({
+            $or: [
+                { eventId: saleEventId },
+                { eventId: eventId },
+                { eventId: null },
+                { eventId: { $exists: false } }
+            ]
+        }).exec();
+        const productSalesMap = {};
+        sales.filter(s => s.status === "PAGO").forEach(sale => {
+            sale.items.forEach(item => {
+                const prodIdObj = item.productId;
+                const pId = prodIdObj._id?.toString() || item.productId.toString();
+                if (!productSalesMap[pId]) {
+                    productSalesMap[pId] = { quantity: 0, revenue: 0 };
+                }
+                productSalesMap[pId].quantity += item.quantity;
+                productSalesMap[pId].revenue += item.quantity * item.priceAtPurchase;
+            });
+        });
+        const investorsMap = {};
+        eventProducts.forEach((prod) => {
+            const pId = prod._id.toString();
+            const prodObj = prod;
+            const sponsor = (prodObj.sponsorName && prodObj.sponsorName.trim() !== "") ? prodObj.sponsorName : "Fundo Próprio / Retiro";
+            const isDonation = prodObj.isDonation || false;
+            const investedAmount = prodObj.totalCost || 0;
+            const salesData = productSalesMap[pId] || { quantity: 0, revenue: 0 };
+            const soldQty = salesData.quantity;
+            const totalRev = salesData.revenue;
+            const initialStk = prod.initialStock || (prod.stock + soldQty) || 1;
+            const unitCost = investedAmount / initialStk;
+            let costToRepay = isDonation ? 0 : (0, money_util_1.roundMoney)(unitCost * soldQty);
+            if (costToRepay > investedAmount)
+                costToRepay = investedAmount;
+            const totalProfit = (0, money_util_1.roundMoney)(totalRev - costToRepay);
+            if (!investorsMap[sponsor]) {
+                investorsMap[sponsor] = {
                     sponsorName: sponsor,
                     products: [],
                     totalInvested: 0,
@@ -130,90 +165,34 @@ let SalesAnalyticsService = class SalesAnalyticsService {
                     totalRevenue: 0,
                     totalToRepay: 0,
                     totalProfitForRetreat: 0,
-                    repaymentProgress: 0
+                    repaymentProgress: 0,
                 };
             }
-            const prodId = prod._id.toString();
-            const stat = productStats[prodId];
-            const soldQty = stat ? stat.quantity : 0;
-            const totalRev = stat ? stat.revenue : 0;
-            const costPrice = prod.costPrice || 0;
-            const salePrice = prod.price || 0;
-            const currentStock = prod.stock ?? 0;
-            const initialStock = prod.initialStock && prod.initialStock > 0 ? prod.initialStock : (currentStock + soldQty);
-            const investedAmount = initialStock * costPrice;
-            const costToRepay = soldQty * costPrice;
-            const prodProfit = totalRev - costToRepay;
-            investorMap[sponsor].products.push({
-                productId: prodId,
+            const prodItem = {
+                productId: pId,
                 name: prod.name,
-                costPrice,
-                salePrice,
-                initialStock,
-                currentStock,
+                costPrice: isDonation ? 0 : (0, money_util_1.roundMoney)(unitCost),
+                salePrice: prod.price,
+                initialStock: prod.initialStock || prod.stock,
+                currentStock: prod.stock,
                 soldQuantity: soldQty,
-                totalRevenue: totalRev,
+                totalRevenue: (0, money_util_1.roundMoney)(totalRev),
                 costToRepay,
-                totalProfit: prodProfit,
-                investedAmount
-            });
-            investorMap[sponsor].totalInvested += investedAmount;
-            investorMap[sponsor].totalSoldQuantity += soldQty;
-            investorMap[sponsor].totalRevenue += totalRev;
-            investorMap[sponsor].totalToRepay += costToRepay;
-            investorMap[sponsor].totalProfitForRetreat += prodProfit;
-        });
-        Object.entries(productStats).forEach(([prodId, stat]) => {
-            const sponsor = (stat.sponsorName || "").trim();
-            if (!sponsor || sponsor === "Retiro / Sem Patrocinador")
-                return;
-            const alreadyAdded = investorMap[sponsor]?.products.some(p => p.productId === prodId);
-            if (!alreadyAdded) {
-                if (!investorMap[sponsor]) {
-                    investorMap[sponsor] = {
-                        sponsorName: sponsor,
-                        products: [],
-                        totalInvested: 0,
-                        totalSoldQuantity: 0,
-                        totalRevenue: 0,
-                        totalToRepay: 0,
-                        totalProfitForRetreat: 0,
-                        repaymentProgress: 0
-                    };
-                }
-                const costPrice = stat.quantity > 0 ? stat.cost / stat.quantity : 0;
-                const salePrice = stat.quantity > 0 ? stat.revenue / stat.quantity : 0;
-                const initialStock = stat.quantity;
-                const currentStock = 0;
-                const investedAmount = initialStock * costPrice;
-                const costToRepay = stat.quantity * costPrice;
-                const prodProfit = stat.revenue - costToRepay;
-                investorMap[sponsor].products.push({
-                    productId: prodId,
-                    name: stat.name,
-                    costPrice,
-                    salePrice,
-                    initialStock,
-                    currentStock,
-                    soldQuantity: stat.quantity,
-                    totalRevenue: stat.revenue,
-                    costToRepay,
-                    totalProfit: prodProfit,
-                    investedAmount
-                });
-                investorMap[sponsor].totalInvested += investedAmount;
-                investorMap[sponsor].totalSoldQuantity += stat.quantity;
-                investorMap[sponsor].totalRevenue += stat.revenue;
-                investorMap[sponsor].totalToRepay += costToRepay;
-                investorMap[sponsor].totalProfitForRetreat += prodProfit;
-            }
-        });
-        const investorsReport = Object.values(investorMap).map(inv => {
-            const progress = inv.totalInvested > 0 ? Math.min(100, Math.round((inv.totalToRepay / inv.totalInvested) * 100)) : 0;
-            return {
-                ...inv,
-                repaymentProgress: progress
+                totalProfit,
+                investedAmount: isDonation ? 0 : investedAmount,
             };
+            investorsMap[sponsor].products.push(prodItem);
+            investorsMap[sponsor].totalInvested = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalInvested + prodItem.investedAmount);
+            investorsMap[sponsor].totalSoldQuantity += prodItem.soldQuantity;
+            investorsMap[sponsor].totalRevenue = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalRevenue + prodItem.totalRevenue);
+            investorsMap[sponsor].totalToRepay = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalToRepay + prodItem.costToRepay);
+            investorsMap[sponsor].totalProfitForRetreat = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalProfitForRetreat + prodItem.totalProfit);
+        });
+        const investorsReport = Object.values(investorsMap).map((inv) => {
+            inv.repaymentProgress = inv.totalInvested > 0
+                ? Math.min(100, Math.round((inv.totalToRepay / inv.totalInvested) * 100))
+                : (inv.totalSoldQuantity > 0 ? 100 : 0);
+            return inv;
         });
         const buyerStats = {};
         sales.forEach((sale) => {
@@ -227,10 +206,10 @@ let SalesAnalyticsService = class SalesAnalyticsService {
                     name: customerName,
                     totalSpent: 0,
                     cpf: customer.cpf || "",
-                    purchasesCount: 0
+                    purchasesCount: 0,
                 };
             }
-            buyerStats[custId].totalSpent += sale.totalPrice;
+            buyerStats[custId].totalSpent = (0, money_util_1.roundMoney)(buyerStats[custId].totalSpent + sale.totalPrice);
             buyerStats[custId].purchasesCount += 1;
         });
         const topBuyers = Object.values(buyerStats)
@@ -243,10 +222,10 @@ let SalesAnalyticsService = class SalesAnalyticsService {
                 return;
             const date = new Date(saleAny.createdAt);
             const hourStr = `${date.getHours().toString().padStart(2, "0")}:00`;
-            hourlyRevenue[hourStr] = (hourlyRevenue[hourStr] || 0) + sale.totalPrice;
+            hourlyRevenue[hourStr] = (0, money_util_1.roundMoney)((hourlyRevenue[hourStr] || 0) + sale.totalPrice);
         });
         const salesTimeline = Object.entries(hourlyRevenue)
-            .map(([time, amount]) => ({ time, amount }))
+            .map(([time, amount]) => ({ time, amount: (0, money_util_1.roundMoney)(amount) }))
             .sort((a, b) => a.time.localeCompare(b.time));
         return {
             summary: {
@@ -258,12 +237,12 @@ let SalesAnalyticsService = class SalesAnalyticsService {
                 totalSalesCount,
                 pagoCount,
                 pendenteCount,
-                ticketMedio
+                ticketMedio,
             },
             topSellingProducts,
             investorsReport,
             topBuyers,
-            salesTimeline
+            salesTimeline,
         };
     }
 };

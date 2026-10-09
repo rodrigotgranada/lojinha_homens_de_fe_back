@@ -42,28 +42,7 @@ export declare class SalesAnalyticsService {
             category: string;
             sponsorName: string;
         }[];
-        investorsReport: {
-            repaymentProgress: number;
-            sponsorName: string;
-            products: Array<{
-                productId: string;
-                name: string;
-                costPrice: number;
-                salePrice: number;
-                initialStock: number;
-                currentStock: number;
-                soldQuantity: number;
-                totalRevenue: number;
-                costToRepay: number;
-                totalProfit: number;
-                investedAmount: number;
-            }>;
-            totalInvested: number;
-            totalSoldQuantity: number;
-            totalRevenue: number;
-            totalToRepay: number;
-            totalProfitForRetreat: number;
-        }[];
+        investorsReport: any[];
         topBuyers: {
             name: string;
             totalSpent: number;

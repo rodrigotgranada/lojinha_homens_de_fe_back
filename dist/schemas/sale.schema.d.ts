@@ -50,15 +50,6 @@ export declare const SaleSchema: import("mongoose").Schema<Sale, import("mongoos
     }, "id"> & import("mongoose").HydratedDocumentOverrides<{
         id: string;
     }>> | undefined;
-    customerId?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId, Sale, Document<unknown, {}, Sale, {
-        id: string;
-    }, import("mongoose").DefaultSchemaOptions> & Omit<Sale & Required<{
-        _id: Types.ObjectId;
-    }> & {
-        __v: number;
-    }, "id"> & import("mongoose").HydratedDocumentOverrides<{
-        id: string;
-    }>> | undefined;
     eventId?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId, Sale, Document<unknown, {}, Sale, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<Sale & Required<{
@@ -77,7 +68,7 @@ export declare const SaleSchema: import("mongoose").Schema<Sale, import("mongoos
     }, "id"> & import("mongoose").HydratedDocumentOverrides<{
         id: string;
     }>> | undefined;
-    totalPrice?: import("mongoose").SchemaDefinitionProperty<number, Sale, Document<unknown, {}, Sale, {
+    status?: import("mongoose").SchemaDefinitionProperty<string, Sale, Document<unknown, {}, Sale, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<Sale & Required<{
         _id: Types.ObjectId;
@@ -86,7 +77,16 @@ export declare const SaleSchema: import("mongoose").Schema<Sale, import("mongoos
     }, "id"> & import("mongoose").HydratedDocumentOverrides<{
         id: string;
     }>> | undefined;
-    status?: import("mongoose").SchemaDefinitionProperty<string, Sale, Document<unknown, {}, Sale, {
+    customerId?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId, Sale, Document<unknown, {}, Sale, {
+        id: string;
+    }, import("mongoose").DefaultSchemaOptions> & Omit<Sale & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    }, "id"> & import("mongoose").HydratedDocumentOverrides<{
+        id: string;
+    }>> | undefined;
+    totalPrice?: import("mongoose").SchemaDefinitionProperty<number, Sale, Document<unknown, {}, Sale, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<Sale & Required<{
         _id: Types.ObjectId;

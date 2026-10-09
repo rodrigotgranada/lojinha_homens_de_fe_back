@@ -16,15 +16,20 @@ let Product = class Product extends mongoose_2.Document {
     name;
     price;
     stock;
-    costPrice;
-    sponsorName;
     initialStock;
+    importedFrom;
     imageUrl;
     active;
     categoryRef;
+    eventId;
     minStock;
     createdBy;
     updatedBy;
+    totalCost;
+    sponsorName;
+    sponsorCpf;
+    sponsorPhone;
+    isDonation;
 };
 exports.Product = Product;
 __decorate([
@@ -42,15 +47,11 @@ __decorate([
 __decorate([
     (0, mongoose_1.Prop)({ default: 0, type: Number }),
     __metadata("design:type", Number)
-], Product.prototype, "costPrice", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ default: "" }),
-    __metadata("design:type", String)
-], Product.prototype, "sponsorName", void 0);
-__decorate([
-    (0, mongoose_1.Prop)({ default: 0, type: Number }),
-    __metadata("design:type", Number)
 ], Product.prototype, "initialStock", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: "Product" }),
+    __metadata("design:type", mongoose_2.Types.ObjectId)
+], Product.prototype, "importedFrom", void 0);
 __decorate([
     (0, mongoose_1.Prop)({ default: "" }),
     __metadata("design:type", String)
@@ -64,6 +65,10 @@ __decorate([
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Product.prototype, "categoryRef", void 0);
 __decorate([
+    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: "Event", index: true, required: false }),
+    __metadata("design:type", mongoose_2.Types.ObjectId)
+], Product.prototype, "eventId", void 0);
+__decorate([
     (0, mongoose_1.Prop)({ default: 5, type: Number }),
     __metadata("design:type", Number)
 ], Product.prototype, "minStock", void 0);
@@ -75,6 +80,26 @@ __decorate([
     (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: "User", index: true }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Product.prototype, "updatedBy", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: Number }),
+    __metadata("design:type", Number)
+], Product.prototype, "totalCost", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], Product.prototype, "sponsorName", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], Product.prototype, "sponsorCpf", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], Product.prototype, "sponsorPhone", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ default: false }),
+    __metadata("design:type", Boolean)
+], Product.prototype, "isDonation", void 0);
 exports.Product = Product = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], Product);

@@ -13,6 +13,8 @@ const products_controller_1 = require("./products.controller");
 const products_service_1 = require("./products.service");
 const product_schema_1 = require("../schemas/product.schema");
 const category_schema_1 = require("../schemas/category.schema");
+const logs_module_1 = require("../logs/logs.module");
+const expenses_module_1 = require("../expenses/expenses.module");
 let ProductsModule = class ProductsModule {
 };
 exports.ProductsModule = ProductsModule;
@@ -23,6 +25,8 @@ exports.ProductsModule = ProductsModule = __decorate([
                 { name: product_schema_1.Product.name, schema: product_schema_1.ProductSchema },
                 { name: category_schema_1.Category.name, schema: category_schema_1.CategorySchema },
             ]),
+            logs_module_1.LogsModule,
+            expenses_module_1.ExpensesModule,
         ],
         controllers: [products_controller_1.ProductsController],
         providers: [products_service_1.ProductsService],

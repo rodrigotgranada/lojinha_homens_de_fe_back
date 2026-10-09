@@ -13,9 +13,9 @@ export class CreateExpenseGroupDto {
   @IsOptional()
   category?: string;
 
-  @IsEnum(["INFRAESTRUTURA", "OPERACIONAL"], { message: "A natureza deve ser INFRAESTRUTURA ou OPERACIONAL" })
+  @IsEnum(["INFRAESTRUTURA", "OPERACIONAL", "LOJINHA_INVESTIMENTO", "LOJINHA_DOACAO"], { message: "Natureza inválida" })
   @IsOptional()
-  nature?: "INFRAESTRUTURA" | "OPERACIONAL";
+  nature?: "INFRAESTRUTURA" | "OPERACIONAL" | "LOJINHA_INVESTIMENTO" | "LOJINHA_DOACAO";
 
   @IsString()
   @IsOptional()

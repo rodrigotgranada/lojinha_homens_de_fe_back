@@ -8,6 +8,7 @@ import { WebsocketGateway } from "../websocket/websocket.gateway";
 import { LogsService } from "../logs/logs.service";
 import { CreateProductDto, UpdateProductDto, UpdateStockDto } from "./dto/product.dto";
 import { ImportPreviousStockDto } from "./dto/import-previous-stock.dto";
+import { ExpensesService } from "../expenses/expenses.service";
 
 @Injectable()
 export class ProductsService {
@@ -18,7 +19,8 @@ export class ProductsService {
     @InjectModel(Category.name) private categoryModel: Model<Category>,
     private firebaseService: FirebaseService,
     private wsGateway: WebsocketGateway,
-    private logsService: LogsService
+    private logsService: LogsService,
+    private expensesService: ExpensesService
   ) {}
 
   private async getOrCreateCategory(name: string): Promise<any> {
@@ -52,11 +54,16 @@ export class ProductsService {
 
   async create(createProductDto: CreateProductDto, file?: Express.Multer.File): Promise<Product> {
     this.logger.log(`Creating product: "${createProductDto.name}"`);
-    const { category, eventId, ...rest } = createProductDto;
+    const { category, eventId, totalCost, sponsorName, sponsorCpf, sponsorPhone, isDonation, ...rest } = createProductDto;
     const cat = await this.getOrCreateCategory(category || "Outros");
 
     const createdProduct = new this.productModel({
       ...rest,
+      totalCost,
+      sponsorName,
+      sponsorCpf,
+      sponsorPhone,
+      isDonation,
       categoryRef: cat._id,
       eventId: eventId && Types.ObjectId.isValid(eventId) ? new Types.ObjectId(eventId) : undefined,
       imageUrl: rest.imageUrl || "",
@@ -73,6 +80,41 @@ export class ProductsService {
 
     const populatedProduct = await this.findOne(saved.id);
     this.wsGateway.broadcastProductChange(populatedProduct);
+
+    // Auto-create expense if financial data is provided
+    if ((totalCost && totalCost > 0) || isDonation) {
+      if (eventId && Types.ObjectId.isValid(eventId)) {
+        try {
+          const expenses = await this.expensesService.findAll(eventId);
+          let group = expenses.find(e => e.category === "LOJINHA");
+          if (!group) {
+            group = await this.expensesService.create({
+              eventId,
+              title: "Custos da Lojinha - Automático",
+              category: "LOJINHA",
+              nature: "LOJINHA_INVESTIMENTO",
+              description: "Grupo criado automaticamente pelo cadastro de produtos.",
+              operatorName: "Sistema"
+            });
+          }
+          
+          if (group) {
+            await this.expensesService.addItem(group._id.toString(), {
+              description: `Lote de ${rest.name}`,
+              amount: totalCost || 0,
+              paidBy: sponsorName || sponsorCpf || "Desconhecido",
+              payerPhone: sponsorPhone || "",
+              isDonation: isDonation || false,
+              operatorName: "Sistema",
+              notes: `Gerado automaticamente pelo cadastro do produto ${rest.name}`
+            });
+          }
+        } catch (err) {
+          this.logger.error("Failed to auto-create expense item for product", err);
+        }
+      }
+    }
+
     return populatedProduct;
   }
 

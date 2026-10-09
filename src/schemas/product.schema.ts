@@ -38,6 +38,21 @@ export class Product extends Document {
 
   @Prop({ type: Types.ObjectId, ref: "User", index: true })
   updatedBy?: Types.ObjectId;
+
+  @Prop({ type: Number })
+  totalCost?: number;
+
+  @Prop()
+  sponsorName?: string;
+
+  @Prop()
+  sponsorCpf?: string;
+
+  @Prop()
+  sponsorPhone?: string;
+
+  @Prop({ default: false })
+  isDonation?: boolean;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);

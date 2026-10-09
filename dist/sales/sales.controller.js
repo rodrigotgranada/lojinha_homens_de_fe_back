@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SalesController = void 0;
 const common_1 = require("@nestjs/common");
 const sales_service_1 = require("./sales.service");
+const sale_dto_1 = require("./dto/sale.dto");
 let SalesController = class SalesController {
     salesService;
     constructor(salesService) {
@@ -32,8 +33,8 @@ let SalesController = class SalesController {
     async updateStatus(id, body) {
         return this.salesService.updateStatus(id, body.status);
     }
-    async cancelSale(id, operatorId) {
-        return this.salesService.cancelSale(id, operatorId);
+    async cancelSale(id, body) {
+        return this.salesService.cancelSale(id, body.operatorId || "system");
     }
 };
 exports.SalesController = SalesController;
@@ -48,7 +49,7 @@ __decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [sale_dto_1.CreateSaleDto]),
     __metadata("design:returntype", Promise)
 ], SalesController.prototype, "create", null);
 __decorate([
@@ -56,15 +57,15 @@ __decorate([
     __param(0, (0, common_1.Param)("id")),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, sale_dto_1.UpdateSaleStatusDto]),
     __metadata("design:returntype", Promise)
 ], SalesController.prototype, "updateStatus", null);
 __decorate([
     (0, common_1.Post)(":id/cancel"),
     __param(0, (0, common_1.Param)("id")),
-    __param(1, (0, common_1.Body)("operatorId")),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [String, sale_dto_1.CancelSaleDto]),
     __metadata("design:returntype", Promise)
 ], SalesController.prototype, "cancelSale", null);
 exports.SalesController = SalesController = __decorate([

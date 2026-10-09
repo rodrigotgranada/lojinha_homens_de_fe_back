@@ -19,6 +19,7 @@ const mongoose_2 = require("mongoose");
 const sale_schema_1 = require("../schemas/sale.schema");
 const products_service_1 = require("../products/products.service");
 const logs_service_1 = require("../logs/logs.service");
+const money_util_1 = require("../common/utils/money.util");
 let SalesService = class SalesService {
     saleModel;
     productsService;
@@ -45,23 +46,45 @@ let SalesService = class SalesService {
             .exec();
     }
     async create(createSaleDto) {
+        const decrementedItems = [];
         if (createSaleDto.items && Array.isArray(createSaleDto.items)) {
             for (const item of createSaleDto.items) {
                 if (item.costAtPurchase === undefined || item.costAtPurchase === null) {
-                    try {
-                        const prod = await this.productsService.findOne(item.productId);
-                        item.costAtPurchase = prod?.costPrice || 0;
-                    }
-                    catch (e) {
-                        item.costAtPurchase = 0;
-                    }
+                    item.costAtPurchase = 0;
+                }
+                item.priceAtPurchase = (0, money_util_1.roundMoney)(item.priceAtPurchase);
+                item.costAtPurchase = (0, money_util_1.roundMoney)(item.costAtPurchase || 0);
+                try {
+                    await this.productsService.incrementStock(item.productId, -item.quantity);
+                    decrementedItems.push({ productId: item.productId, quantity: item.quantity });
+                }
+                catch (err) {
+                    console.error(`Falha ao decrementar estoque de ${item.productId}:`, err);
                 }
             }
         }
+        createSaleDto.totalPrice = (0, money_util_1.roundMoney)(createSaleDto.totalPrice);
         const createdSale = new this.saleModel(createSaleDto);
-        return createdSale.save();
+        try {
+            return await createdSale.save();
+        }
+        catch (saveError) {
+            console.error("Falha ao salvar a venda, iniciando rollback de estoque:", saveError);
+            for (const item of decrementedItems) {
+                try {
+                    await this.productsService.incrementStock(item.productId, item.quantity);
+                }
+                catch (rollbackErr) {
+                    console.error(`Falha no rollback de estoque para ${item.productId}:`, rollbackErr);
+                }
+            }
+            throw new common_1.BadRequestException("Falha ao processar a venda. O estoque foi restaurado.");
+        }
     }
     async updateStatus(id, status) {
+        if (status === "CANCELADO") {
+            throw new common_1.BadRequestException("Use o endpoint de cancelamento explícito (/sales/:id/cancel) para cancelar vendas e estornar estoque.");
+        }
         const updated = await this.saleModel
             .findByIdAndUpdate(id, { status }, { new: true, returnDocument: 'after' })
             .populate("customerId")
@@ -82,8 +105,8 @@ let SalesService = class SalesService {
                     saleId: id,
                     status,
                     totalPrice: updated.totalPrice,
-                    eventId: updated.eventId
-                }
+                    eventId: updated.eventId,
+                },
             });
         }
         catch (err) {
@@ -108,18 +131,11 @@ let SalesService = class SalesService {
                 ? item.productId._id.toString()
                 : item.productId.toString();
             try {
-                const product = await this.productsService.findOne(productIdStr);
-                if (product) {
-                    const newStock = product.stock + item.quantity;
-                    console.log(`[SalesService] Restoring stock of product ${product.name} (${productIdStr}): ${product.stock} -> ${newStock}`);
-                    await this.productsService.updateStock(productIdStr, newStock);
-                }
-                else {
-                    console.warn(`[SalesService] Product not found for stock restore: ${productIdStr}`);
-                }
+                console.log(`[SalesService] Incrementing stock atomically for product ${productIdStr} by +${item.quantity}`);
+                await this.productsService.incrementStock(productIdStr, item.quantity);
             }
             catch (err) {
-                console.error(`Falha ao devolver estoque do produto ${productIdStr}:`, err);
+                console.error(`Falha ao estornar estoque atomicamente do produto ${productIdStr}:`, err);
             }
         }
         sale.status = "CANCELADO";
@@ -139,8 +155,8 @@ let SalesService = class SalesService {
                     saleId: id,
                     totalPrice: sale.totalPrice,
                     items: sale.items,
-                    eventId: sale.eventId
-                }
+                    eventId: sale.eventId,
+                },
             });
         }
         catch (err) {

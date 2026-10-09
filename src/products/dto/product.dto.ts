@@ -48,6 +48,35 @@ export class CreateProductDto {
   @IsOptional()
   @Type(() => Number)
   minStock?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  totalCost?: number;
+
+  @IsString()
+  @IsOptional()
+  sponsorName?: string;
+
+  @IsString()
+  @IsOptional()
+  sponsorCpf?: string;
+
+  @IsString()
+  @IsOptional()
+  sponsorPhone?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isDonation?: boolean;
+
+  @IsString()
+  @IsOptional()
+  createdBy?: string;
+
+  @IsString()
+  @IsOptional()
+  updatedBy?: string;
 }
 
 export class UpdateProductDto {
@@ -92,6 +121,31 @@ export class UpdateProductDto {
   @IsOptional()
   @Type(() => Number)
   minStock?: number;
+
+  @IsString()
+  @IsOptional()
+  updatedBy?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  totalCost?: number;
+
+  @IsString()
+  @IsOptional()
+  sponsorName?: string;
+
+  @IsString()
+  @IsOptional()
+  sponsorCpf?: string;
+
+  @IsString()
+  @IsOptional()
+  sponsorPhone?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isDonation?: boolean;
 }
 
 export class UpdateStockDto {

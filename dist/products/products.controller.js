@@ -16,41 +16,34 @@ exports.ProductsController = void 0;
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
 const products_service_1 = require("./products.service");
+const product_dto_1 = require("./dto/product.dto");
+const import_previous_stock_dto_1 = require("./dto/import-previous-stock.dto");
 let ProductsController = class ProductsController {
     productsService;
     constructor(productsService) {
         this.productsService = productsService;
     }
-    async findAll(includeAll) {
+    async findAll(includeAll, eventId) {
         const showAll = includeAll === "true" || includeAll !== undefined;
-        return this.productsService.findAll(showAll);
+        return this.productsService.findAll(showAll, eventId);
+    }
+    async getRemainingStock(eventId) {
+        return this.productsService.getRemainingStockFromEvent(eventId);
+    }
+    async importStockReconciliation(dto) {
+        return this.productsService.importStockReconciliation(dto);
     }
     async findOne(id) {
         return this.productsService.findOne(id);
     }
     async create(createProductDto, file) {
-        const payload = {
-            ...createProductDto,
-            price: createProductDto.price ? Number(createProductDto.price) : 0,
-            stock: createProductDto.stock ? Number(createProductDto.stock) : 0,
-            minStock: createProductDto.minStock ? Number(createProductDto.minStock) : 5,
-            active: createProductDto.active !== "false",
-        };
-        return this.productsService.create(payload, file);
+        return this.productsService.create(createProductDto, file);
     }
     async update(id, updateProductDto, file) {
-        const payload = {
-            ...updateProductDto,
-            price: updateProductDto.price ? Number(updateProductDto.price) : undefined,
-            stock: updateProductDto.stock ? Number(updateProductDto.stock) : undefined,
-            minStock: updateProductDto.minStock ? Number(updateProductDto.minStock) : undefined,
-            active: updateProductDto.active !== undefined ? updateProductDto.active !== "false" : undefined,
-        };
-        return this.productsService.update(id, payload, file);
+        return this.productsService.update(id, updateProductDto, file);
     }
     async patchUpdate(id, body) {
-        const keys = Object.keys(body);
-        if (keys.length === 1 && body.stock !== undefined) {
+        if ("stock" in body && Object.keys(body).length === 1) {
             return this.productsService.updateStock(id, Number(body.stock));
         }
         return this.productsService.update(id, body);
@@ -69,10 +62,25 @@ exports.ProductsController = ProductsController;
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)("all")),
+    __param(1, (0, common_1.Query)("eventId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], ProductsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)("remaining-stock/:eventId"),
+    __param(0, (0, common_1.Param)("eventId")),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
-], ProductsController.prototype, "findAll", null);
+], ProductsController.prototype, "getRemainingStock", null);
+__decorate([
+    (0, common_1.Post)("import-stock-reconciliation"),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [import_previous_stock_dto_1.ImportPreviousStockDto]),
+    __metadata("design:returntype", Promise)
+], ProductsController.prototype, "importStockReconciliation", null);
 __decorate([
     (0, common_1.Get)(":id"),
     __param(0, (0, common_1.Param)("id")),
@@ -86,7 +94,7 @@ __decorate([
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.UploadedFile)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [product_dto_1.CreateProductDto, Object]),
     __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "create", null);
 __decorate([
@@ -96,7 +104,7 @@ __decorate([
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.UploadedFile)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:paramtypes", [String, product_dto_1.UpdateProductDto, Object]),
     __metadata("design:returntype", Promise)
 ], ProductsController.prototype, "update", null);
 __decorate([
