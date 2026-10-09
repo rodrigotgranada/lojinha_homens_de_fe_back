@@ -58,8 +58,8 @@ async function bootstrap() {
     });
     const configService = app.get(config_1.ConfigService);
     const port = configService.get("PORT") || 3001;
-    await app.listen(port);
-    logger.log(`NestJS Backend server is running on: http://localhost:${port}`);
+    await app.listen(port, "0.0.0.0");
+    logger.log(`NestJS Backend server is running on: http://0.0.0.0:${port} (LAN compatible)`);
 }
 bootstrap();
 //# sourceMappingURL=main.js.map
