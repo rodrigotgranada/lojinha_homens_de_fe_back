@@ -19,6 +19,11 @@ export class SalesController {
     return this.salesService.create(createSaleDto);
   }
 
+  @Patch("customer/:customerId/pay-all")
+  async payAllByCustomer(@Param("customerId") customerId: string) {
+    return this.salesService.payAllCustomerSales(customerId);
+  }
+
   @Patch(":id")
   async updateStatus(@Param("id") id: string, @Body() body: UpdateSaleStatusDto) {
     return this.salesService.updateStatus(id, body.status);

@@ -30,12 +30,18 @@ let SalesService = class SalesService {
         this.logsService = logsService;
     }
     async findAll() {
-        return this.saleModel
-            .find()
-            .populate("customerId")
-            .populate("items.productId")
-            .sort({ createdAt: -1 })
-            .exec();
+        try {
+            return await this.saleModel
+                .find()
+                .populate("customerId")
+                .populate("items.productId")
+                .sort({ createdAt: -1 })
+                .exec();
+        }
+        catch (err) {
+            console.error("Error in findAll:", err);
+            throw err;
+        }
     }
     async findByCustomer(customerId) {
         return this.saleModel
@@ -113,6 +119,42 @@ let SalesService = class SalesService {
             console.error("Falha ao registrar log de mudança de status:", err);
         }
         return updated;
+    }
+    async payAllCustomerSales(customerId) {
+        const pendingSales = await this.saleModel
+            .find({ customerId, status: "PENDENTE" })
+            .populate("customerId")
+            .exec();
+        if (!pendingSales || pendingSales.length === 0) {
+            return { updatedCount: 0, totalPaid: 0 };
+        }
+        const totalPaid = (0, money_util_1.roundMoney)(pendingSales.reduce((acc, s) => acc + (s.totalPrice || 0), 0));
+        const saleIds = pendingSales.map((s) => s._id);
+        await this.saleModel
+            .updateMany({ _id: { $in: saleIds } }, { $set: { status: "PAGO" } })
+            .exec();
+        const customerObj = pendingSales[0].customerId;
+        const customerName = customerObj?.firstName
+            ? `${customerObj.firstName} ${customerObj.lastName || ""}`.trim()
+            : "Cliente";
+        try {
+            await this.logsService.create({
+                userId: "system",
+                userName: "Admin",
+                action: "sale_bulk_pay",
+                description: `Quitação em massa de pendências: ${pendingSales.length} venda(s) do cliente ${customerName} foram marcadas como PAGAS (Total quitado: R$ ${totalPaid.toFixed(2)}).`,
+                metadata: {
+                    customerId,
+                    saleIds,
+                    totalPaid,
+                    count: pendingSales.length,
+                },
+            });
+        }
+        catch (err) {
+            console.error("Falha ao registrar log de quitação em massa:", err);
+        }
+        return { updatedCount: pendingSales.length, totalPaid };
     }
     async cancelSale(id, operatorId) {
         const sale = await this.saleModel

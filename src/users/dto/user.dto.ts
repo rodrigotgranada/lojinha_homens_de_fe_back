@@ -28,6 +28,10 @@ export class CreateUserDto {
   @IsOptional()
   @IsBoolean()
   active?: boolean;
+
+  @IsOptional()
+  @IsString()
+  createdBy?: string;
 }
 
 export class UpdateUserDto {
@@ -62,4 +66,8 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   active?: boolean;
+
+  @IsOptional()
+  @IsString()
+  createdBy?: string;
 }

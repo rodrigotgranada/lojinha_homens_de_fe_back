@@ -12,5 +12,9 @@ export declare class SalesService {
     findByCustomer(customerId: string): Promise<Sale[]>;
     create(createSaleDto: CreateSaleDto): Promise<Sale>;
     updateStatus(id: string, status: string): Promise<Sale>;
+    payAllCustomerSales(customerId: string): Promise<{
+        updatedCount: number;
+        totalPaid: number;
+    }>;
     cancelSale(id: string, operatorId: string): Promise<Sale>;
 }

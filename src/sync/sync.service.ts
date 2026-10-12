@@ -30,11 +30,11 @@ export class SyncService implements OnApplicationBootstrap {
       this.logger.log("INICIANDO SERVIÇO DE SINCRONIZAÇÃO LOCAL NO NOTEBOOK...");
       const intervalMs = parseInt(this.configService.get<string>("SYNC_INTERVAL_MS") || "30000", 10); // Default 30s
       
-      // Executa a primeira sincronização após 5 segundos da inicialização
-      setTimeout(() => this.runSyncCycle(), 5000);
-
-      // Agenda as próximas execuções periódicas
-      setInterval(() => this.runSyncCycle(), intervalMs);
+      // A sincronização automática foi desativada a pedido do usuário.
+      // Sincronização ocorrerá apenas sob demanda (botão manual).
+      // setTimeout(() => this.runSyncCycle(), 5000);
+      // setInterval(() => this.runSyncCycle(), intervalMs);
+      this.logger.log("Sincronização automática em segundo plano DESATIVADA (Apenas manual).");
     } else {
       this.logger.log("Servidor rodando em ambiente de NUVEM. Serviço de sincronização local inativo.");
     }
@@ -77,7 +77,7 @@ export class SyncService implements OnApplicationBootstrap {
 
   private async checkRemoteConnectivity(remoteUrl: string): Promise<boolean> {
     try {
-      const response = await fetch(`${remoteUrl}/sync/health`, { signal: AbortSignal.timeout(5000) });
+      const response = await fetch(`${remoteUrl}/sync/health`, { signal: AbortSignal.timeout(30000) });
       if (!response.ok) {
         this.logger.warn(`Servidor remoto respondeu com status inválido no health: ${response.status}. Pulando sincronização.`);
         return false;

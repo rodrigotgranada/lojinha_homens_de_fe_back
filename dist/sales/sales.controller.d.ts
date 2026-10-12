@@ -5,6 +5,10 @@ export declare class SalesController {
     constructor(salesService: SalesService);
     findAll(customerId?: string): Promise<import("../schemas/sale.schema").Sale[]>;
     create(createSaleDto: CreateSaleDto): Promise<import("../schemas/sale.schema").Sale>;
+    payAllByCustomer(customerId: string): Promise<{
+        updatedCount: number;
+        totalPaid: number;
+    }>;
     updateStatus(id: string, body: UpdateSaleStatusDto): Promise<import("../schemas/sale.schema").Sale>;
     cancelSale(id: string, body: CancelSaleDto): Promise<import("../schemas/sale.schema").Sale>;
 }

@@ -30,6 +30,9 @@ let SalesController = class SalesController {
     async create(createSaleDto) {
         return this.salesService.create(createSaleDto);
     }
+    async payAllByCustomer(customerId) {
+        return this.salesService.payAllCustomerSales(customerId);
+    }
     async updateStatus(id, body) {
         return this.salesService.updateStatus(id, body.status);
     }
@@ -52,6 +55,13 @@ __decorate([
     __metadata("design:paramtypes", [sale_dto_1.CreateSaleDto]),
     __metadata("design:returntype", Promise)
 ], SalesController.prototype, "create", null);
+__decorate([
+    (0, common_1.Patch)("customer/:customerId/pay-all"),
+    __param(0, (0, common_1.Param)("customerId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], SalesController.prototype, "payAllByCustomer", null);
 __decorate([
     (0, common_1.Patch)(":id"),
     __param(0, (0, common_1.Param)("id")),

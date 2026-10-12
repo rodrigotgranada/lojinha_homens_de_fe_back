@@ -27,6 +27,15 @@ export declare const ProductSchema: import("mongoose").Schema<Product, import("m
 }, "id"> & import("mongoose").HydratedDocumentOverrides<{
     id: string;
 }>, {
+    name?: import("mongoose").SchemaDefinitionProperty<string, Product, Document<unknown, {}, Product, {
+        id: string;
+    }, import("mongoose").DefaultSchemaOptions> & Omit<Product & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    }, "id"> & import("mongoose").HydratedDocumentOverrides<{
+        id: string;
+    }>> | undefined;
     _id?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId, Product, Document<unknown, {}, Product, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<Product & Required<{
@@ -36,7 +45,16 @@ export declare const ProductSchema: import("mongoose").Schema<Product, import("m
     }, "id"> & import("mongoose").HydratedDocumentOverrides<{
         id: string;
     }>> | undefined;
-    name?: import("mongoose").SchemaDefinitionProperty<string, Product, Document<unknown, {}, Product, {
+    createdBy?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId | undefined, Product, Document<unknown, {}, Product, {
+        id: string;
+    }, import("mongoose").DefaultSchemaOptions> & Omit<Product & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    }, "id"> & import("mongoose").HydratedDocumentOverrides<{
+        id: string;
+    }>> | undefined;
+    active?: import("mongoose").SchemaDefinitionProperty<boolean, Product, Document<unknown, {}, Product, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<Product & Required<{
         _id: Types.ObjectId;
@@ -90,15 +108,6 @@ export declare const ProductSchema: import("mongoose").Schema<Product, import("m
     }, "id"> & import("mongoose").HydratedDocumentOverrides<{
         id: string;
     }>> | undefined;
-    active?: import("mongoose").SchemaDefinitionProperty<boolean, Product, Document<unknown, {}, Product, {
-        id: string;
-    }, import("mongoose").DefaultSchemaOptions> & Omit<Product & Required<{
-        _id: Types.ObjectId;
-    }> & {
-        __v: number;
-    }, "id"> & import("mongoose").HydratedDocumentOverrides<{
-        id: string;
-    }>> | undefined;
     categoryRef?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId, Product, Document<unknown, {}, Product, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<Product & Required<{
@@ -118,15 +127,6 @@ export declare const ProductSchema: import("mongoose").Schema<Product, import("m
         id: string;
     }>> | undefined;
     minStock?: import("mongoose").SchemaDefinitionProperty<number, Product, Document<unknown, {}, Product, {
-        id: string;
-    }, import("mongoose").DefaultSchemaOptions> & Omit<Product & Required<{
-        _id: Types.ObjectId;
-    }> & {
-        __v: number;
-    }, "id"> & import("mongoose").HydratedDocumentOverrides<{
-        id: string;
-    }>> | undefined;
-    createdBy?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId | undefined, Product, Document<unknown, {}, Product, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<Product & Required<{
         _id: Types.ObjectId;
