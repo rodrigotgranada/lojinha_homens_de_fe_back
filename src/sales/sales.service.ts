@@ -53,8 +53,18 @@ export class SalesService {
 
     if (createSaleDto.items && Array.isArray(createSaleDto.items)) {
       for (const item of createSaleDto.items) {
-        if (item.costAtPurchase === undefined || item.costAtPurchase === null) {
-          item.costAtPurchase = 0;
+        if (!item.costAtPurchase || item.costAtPurchase === 0) {
+          try {
+            const prod = await this.productsService.findOne(item.productId);
+            if (prod && prod.totalCost && prod.totalCost > 0) {
+              const divisor = prod.initialStock || prod.stock || 1;
+              item.costAtPurchase = roundMoney(prod.totalCost / divisor);
+            } else {
+              item.costAtPurchase = 0;
+            }
+          } catch {
+            item.costAtPurchase = 0;
+          }
         }
         item.priceAtPurchase = roundMoney(item.priceAtPurchase);
         item.costAtPurchase = roundMoney(item.costAtPurchase || 0);

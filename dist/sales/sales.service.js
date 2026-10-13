@@ -64,8 +64,20 @@ let SalesService = class SalesService {
         const decrementedItems = [];
         if (createSaleDto.items && Array.isArray(createSaleDto.items)) {
             for (const item of createSaleDto.items) {
-                if (item.costAtPurchase === undefined || item.costAtPurchase === null) {
-                    item.costAtPurchase = 0;
+                if (!item.costAtPurchase || item.costAtPurchase === 0) {
+                    try {
+                        const prod = await this.productsService.findOne(item.productId);
+                        if (prod && prod.totalCost && prod.totalCost > 0) {
+                            const divisor = prod.initialStock || prod.stock || 1;
+                            item.costAtPurchase = (0, money_util_1.roundMoney)(prod.totalCost / divisor);
+                        }
+                        else {
+                            item.costAtPurchase = 0;
+                        }
+                    }
+                    catch {
+                        item.costAtPurchase = 0;
+                    }
                 }
                 item.priceAtPurchase = (0, money_util_1.roundMoney)(item.priceAtPurchase);
                 item.costAtPurchase = (0, money_util_1.roundMoney)(item.costAtPurchase || 0);

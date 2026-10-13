@@ -68,11 +68,14 @@ export class SalesAnalyticsService {
         .reduce((acc, s) => {
           const saleCost = s.items.reduce((sum, item) => {
             const prodObj = item.productId as any;
-            const currentProdCost = prodObj?.costPrice ?? 0;
+            const fallbackProdCost =
+              prodObj?.totalCost && prodObj?.initialStock
+                ? roundMoney(prodObj.totalCost / prodObj.initialStock)
+                : prodObj?.costPrice ?? 0;
             const itemCost =
               item.costAtPurchase && item.costAtPurchase > 0
                 ? item.costAtPurchase
-                : currentProdCost;
+                : fallbackProdCost;
             return sum + item.quantity * itemCost;
           }, 0);
           return acc + saleCost;

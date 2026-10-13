@@ -71,10 +71,12 @@ let SalesAnalyticsService = class SalesAnalyticsService {
             .reduce((acc, s) => {
             const saleCost = s.items.reduce((sum, item) => {
                 const prodObj = item.productId;
-                const currentProdCost = prodObj?.costPrice ?? 0;
+                const fallbackProdCost = prodObj?.totalCost && prodObj?.initialStock
+                    ? (0, money_util_1.roundMoney)(prodObj.totalCost / prodObj.initialStock)
+                    : prodObj?.costPrice ?? 0;
                 const itemCost = item.costAtPurchase && item.costAtPurchase > 0
                     ? item.costAtPurchase
-                    : currentProdCost;
+                    : fallbackProdCost;
                 return sum + item.quantity * itemCost;
             }, 0);
             return acc + saleCost;
