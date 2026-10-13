@@ -8,4 +8,5 @@ export declare class UsersService {
     findOne(id: string): Promise<User>;
     create(createUserDto: any): Promise<User>;
     update(id: string, updateUserDto: any): Promise<User>;
+    markCharged(id: string): Promise<User>;
 }

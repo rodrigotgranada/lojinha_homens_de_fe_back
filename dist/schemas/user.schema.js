@@ -24,6 +24,8 @@ let User = class User extends mongoose_2.Document {
     active;
     synced;
     synchronizedAt;
+    lastChargedAt;
+    chargeCount;
 };
 exports.User = User;
 __decorate([
@@ -70,6 +72,14 @@ __decorate([
     (0, mongoose_1.Prop)({ type: Date, required: false }),
     __metadata("design:type", Date)
 ], User.prototype, "synchronizedAt", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: Date, required: false }),
+    __metadata("design:type", Date)
+], User.prototype, "lastChargedAt", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: Number, default: 0 }),
+    __metadata("design:type", Number)
+], User.prototype, "chargeCount", void 0);
 exports.User = User = __decorate([
     (0, mongoose_1.Schema)({ timestamps: true })
 ], User);

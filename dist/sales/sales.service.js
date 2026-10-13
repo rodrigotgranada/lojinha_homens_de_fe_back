@@ -44,8 +44,10 @@ let SalesService = class SalesService {
         }
     }
     async findByCustomer(customerId) {
+        const objectId = mongoose_2.Types.ObjectId.isValid(customerId) ? new mongoose_2.Types.ObjectId(customerId) : null;
+        const filter = objectId ? { $or: [{ customerId: objectId }, { customerId }] } : { customerId };
         return this.saleModel
-            .find({ customerId })
+            .find(filter)
             .populate("customerId")
             .populate("items.productId")
             .sort({ createdAt: -1 })
@@ -121,8 +123,12 @@ let SalesService = class SalesService {
         return updated;
     }
     async payAllCustomerSales(customerId) {
+        const objectId = mongoose_2.Types.ObjectId.isValid(customerId) ? new mongoose_2.Types.ObjectId(customerId) : null;
+        const filter = objectId
+            ? { $or: [{ customerId: objectId }, { customerId }], status: "PENDENTE" }
+            : { customerId, status: "PENDENTE" };
         const pendingSales = await this.saleModel
-            .find({ customerId, status: "PENDENTE" })
+            .find(filter)
             .populate("customerId")
             .exec();
         if (!pendingSales || pendingSales.length === 0) {
@@ -133,6 +139,13 @@ let SalesService = class SalesService {
         await this.saleModel
             .updateMany({ _id: { $in: saleIds } }, { $set: { status: "PAGO" } })
             .exec();
+        try {
+            await this.saleModel.db.model("User").findByIdAndUpdate(customerId, {
+                $set: { lastChargedAt: null, chargeCount: 0 }
+            }).exec();
+        }
+        catch (e) {
+        }
         const customerObj = pendingSales[0].customerId;
         const customerName = customerObj?.firstName
             ? `${customerObj.firstName} ${customerObj.lastName || ""}`.trim()

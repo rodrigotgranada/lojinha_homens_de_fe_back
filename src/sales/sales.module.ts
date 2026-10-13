@@ -10,12 +10,14 @@ import { SalesAnalyticsService } from "./sales-analytics.service";
 import { SalesAnalyticsController } from "./sales-analytics.controller";
 
 import { Product, ProductSchema } from "../schemas/product.schema";
+import { StockEntry, StockEntrySchema } from "../schemas/stock-entry.schema";
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Sale.name, schema: SaleSchema },
-      { name: Product.name, schema: ProductSchema }
+      { name: Product.name, schema: ProductSchema },
+      { name: StockEntry.name, schema: StockEntrySchema },
     ]),
     ProductsModule,
     LogsModule,

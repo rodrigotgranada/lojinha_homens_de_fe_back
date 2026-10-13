@@ -58,6 +58,18 @@ let UsersService = class UsersService {
         }
         return updated;
     }
+    async markCharged(id) {
+        const updated = await this.userModel
+            .findByIdAndUpdate(id, {
+            $set: { lastChargedAt: new Date() },
+            $inc: { chargeCount: 1 },
+        }, { returnDocument: "after" })
+            .exec();
+        if (!updated) {
+            throw new common_1.NotFoundException(`User with ID ${id} not found`);
+        }
+        return updated;
+    }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([

@@ -3,12 +3,14 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import { Product } from "../schemas/product.schema";
 import { Category } from "../schemas/category.schema";
+import { StockEntry } from "../schemas/stock-entry.schema";
 import { FirebaseService } from "../firebase/firebase.service";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
 import { LogsService } from "../logs/logs.service";
 import { CreateProductDto, UpdateProductDto, UpdateStockDto } from "./dto/product.dto";
 import { ImportPreviousStockDto } from "./dto/import-previous-stock.dto";
 import { ExpensesService } from "../expenses/expenses.service";
+import { roundMoney } from "../common/utils/money.util";
 
 @Injectable()
 export class ProductsService {
@@ -17,6 +19,7 @@ export class ProductsService {
   constructor(
     @InjectModel(Product.name) private productModel: Model<Product>,
     @InjectModel(Category.name) private categoryModel: Model<Category>,
+    @InjectModel(StockEntry.name) private stockEntryModel: Model<StockEntry>,
     private firebaseService: FirebaseService,
     private wsGateway: WebsocketGateway,
     private logsService: LogsService,
@@ -112,6 +115,34 @@ export class ProductsService {
         } catch (err) {
           this.logger.error("Failed to auto-create expense item for product", err);
         }
+      }
+    }
+
+    // Auto-create initial StockEntry if stock > 0
+    if (saved.stock > 0) {
+      try {
+        const initialQty = saved.stock;
+        const unitCost =
+          totalCost && initialQty > 0
+            ? roundMoney(totalCost / initialQty)
+            : 0;
+
+        await this.stockEntryModel.create({
+          productId: saved._id,
+          eventId: saved.eventId,
+          quantity: initialQty,
+          costPrice: unitCost,
+          totalCost: totalCost || 0,
+          sponsorName: (sponsorName || "").trim(),
+          sponsorCpf: (sponsorCpf || "").trim(),
+          sponsorPhone: (sponsorPhone || "").trim(),
+          isDonation: isDonation || false,
+          date: new Date(),
+          notes: "Lote de entrada inicial cadastrado com o produto.",
+          operatorName: "Sistema",
+        });
+      } catch (entryErr) {
+        this.logger.error("Failed to auto-create initial StockEntry for product", entryErr);
       }
     }
 

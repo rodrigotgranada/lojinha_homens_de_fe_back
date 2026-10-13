@@ -1,10 +1,12 @@
 import { Model } from "mongoose";
 import { Sale } from "../schemas/sale.schema";
 import { Product } from "../schemas/product.schema";
+import { StockEntry } from "../schemas/stock-entry.schema";
 export declare class SalesAnalyticsService {
     private readonly saleModel;
     private readonly productModel;
-    constructor(saleModel: Model<Sale>, productModel: Model<Product>);
+    private readonly stockEntryModel;
+    constructor(saleModel: Model<Sale>, productModel: Model<Product>, stockEntryModel: Model<StockEntry>);
     getEventAnalytics(eventId: string): Promise<{
         summary: {
             totalRevenue: number;

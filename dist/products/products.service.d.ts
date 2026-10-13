@@ -1,6 +1,7 @@
 import { Model } from "mongoose";
 import { Product } from "../schemas/product.schema";
 import { Category } from "../schemas/category.schema";
+import { StockEntry } from "../schemas/stock-entry.schema";
 import { FirebaseService } from "../firebase/firebase.service";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
 import { LogsService } from "../logs/logs.service";
@@ -10,12 +11,13 @@ import { ExpensesService } from "../expenses/expenses.service";
 export declare class ProductsService {
     private productModel;
     private categoryModel;
+    private stockEntryModel;
     private firebaseService;
     private wsGateway;
     private logsService;
     private expensesService;
     private readonly logger;
-    constructor(productModel: Model<Product>, categoryModel: Model<Category>, firebaseService: FirebaseService, wsGateway: WebsocketGateway, logsService: LogsService, expensesService: ExpensesService);
+    constructor(productModel: Model<Product>, categoryModel: Model<Category>, stockEntryModel: Model<StockEntry>, firebaseService: FirebaseService, wsGateway: WebsocketGateway, logsService: LogsService, expensesService: ExpensesService);
     private getOrCreateCategory;
     findAll(includeInactive?: boolean, eventId?: string): Promise<Product[]>;
     findOne(id: string): Promise<Product>;

@@ -30,6 +30,8 @@ const logs_module_1 = require("./logs/logs.module");
 const categories_module_1 = require("./categories/categories.module");
 const sync_module_1 = require("./sync/sync.module");
 const expenses_module_1 = require("./expenses/expenses.module");
+const stock_entries_module_1 = require("./stock-entries/stock-entries.module");
+const payment_config_module_1 = require("./payment-config/payment-config.module");
 let AppModule = class AppModule {
     connection;
     firebaseService;
@@ -178,6 +180,8 @@ exports.AppModule = AppModule = __decorate([
             categories_module_1.CategoriesModule,
             sync_module_1.SyncModule,
             expenses_module_1.ExpensesModule,
+            stock_entries_module_1.StockEntriesModule,
+            payment_config_module_1.PaymentConfigModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

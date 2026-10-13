@@ -17,6 +17,7 @@ const logs_module_1 = require("../logs/logs.module");
 const sales_analytics_service_1 = require("./sales-analytics.service");
 const sales_analytics_controller_1 = require("./sales-analytics.controller");
 const product_schema_1 = require("../schemas/product.schema");
+const stock_entry_schema_1 = require("../schemas/stock-entry.schema");
 let SalesModule = class SalesModule {
 };
 exports.SalesModule = SalesModule;
@@ -25,7 +26,8 @@ exports.SalesModule = SalesModule = __decorate([
         imports: [
             mongoose_1.MongooseModule.forFeature([
                 { name: sale_schema_1.Sale.name, schema: sale_schema_1.SaleSchema },
-                { name: product_schema_1.Product.name, schema: product_schema_1.ProductSchema }
+                { name: product_schema_1.Product.name, schema: product_schema_1.ProductSchema },
+                { name: stock_entry_schema_1.StockEntry.name, schema: stock_entry_schema_1.StockEntrySchema },
             ]),
             products_module_1.ProductsModule,
             logs_module_1.LogsModule,

@@ -10,6 +10,8 @@ import { ExpenseSchema } from "../schemas/expense.schema";
 import { EventIncomeSchema } from "../schemas/event-income.schema";
 import { SaleSchema } from "../schemas/sale.schema";
 import { LogSchema } from "../schemas/log.schema";
+import { StockEntrySchema } from "../schemas/stock-entry.schema";
+import { PaymentConfigSchema } from "../schemas/payment-config.schema";
 
 const isClean = process.argv.includes("--clean");
 
@@ -33,6 +35,8 @@ async function runSeed() {
   const EventIncomeModel = mongoose.model("EventIncome", EventIncomeSchema);
   const SaleModel = mongoose.model("Sale", SaleSchema);
   const LogModel = mongoose.model("Log", LogSchema);
+  const StockEntryModel = mongoose.model("StockEntry", StockEntrySchema);
+  const PaymentConfigModel = mongoose.model("PaymentConfig", PaymentConfigSchema);
 
   // 1. Limpeza total de coleções
   console.log("🧹 Limpando dados das coleções...");
@@ -45,8 +49,22 @@ async function runSeed() {
     EventIncomeModel.deleteMany({}),
     SaleModel.deleteMany({}),
     LogModel.deleteMany({}),
+    StockEntryModel.deleteMany({}),
+    PaymentConfigModel.deleteMany({}),
   ]);
   console.log("✨ Banco de dados limpo com sucesso.");
+
+  // Cadastra Chave PIX padrão
+  await PaymentConfigModel.create({
+    pixKey: "homensdefe.pel@gmail.com",
+    keyType: "EMAIL",
+    merchantName: "Alcides",
+    bankName: "Nubank",
+    city: "Pelotas",
+    description: "Chave Oficial do Retiro",
+    isDefault: true,
+    active: true,
+  });
 
   if (isClean) {
     console.log("\n👤 Cadastrando os 3 Administradores padrão e estrutura inicial...");
@@ -300,6 +318,58 @@ async function runSeed() {
     },
   ]);
   console.log(`✔️ ${currentProducts.length} Produtos cadastrados no evento atual (2026).`);
+
+  // 6.1 Inserir Lotes de Entradas de Estoque (com múltiplos patrocinadores)
+  await StockEntryModel.insertMany([
+    // Camiseta Oficial 2026 (Doação)
+    {
+      productId: currentProducts[0]._id,
+      eventId: currentEvent._id,
+      quantity: 50,
+      costPrice: 35.0,
+      totalCost: 1750.0,
+      sponsorName: "Doação Gráfica Esperança",
+      isDonation: true,
+      notes: "Doação integral de camisetas para a comunidade",
+      operatorName: "Admin",
+    },
+    // Boné Bordado: Dois irmãos dividiram a confecção! (Múltiplos Patrocinadores)
+    {
+      productId: currentProducts[1]._id,
+      eventId: currentEvent._id,
+      quantity: 15,
+      costPrice: 20.0,
+      totalCost: 300.0,
+      sponsorName: "Irmão Carlos",
+      isDonation: false,
+      notes: "Metade do lote de bonés financiado pelo Carlos",
+      operatorName: "Admin",
+    },
+    {
+      productId: currentProducts[1]._id,
+      eventId: currentEvent._id,
+      quantity: 15,
+      costPrice: 20.0,
+      totalCost: 300.0,
+      sponsorName: "Irmão Marcos",
+      isDonation: false,
+      notes: "Segunda metade do lote financiado pelo Marcos",
+      operatorName: "Admin",
+    },
+    // Chaveiro Resinado: Financiado pela Irmã Maria
+    {
+      productId: currentProducts[3]._id,
+      eventId: currentEvent._id,
+      quantity: 40,
+      costPrice: 4.5,
+      totalCost: 180.0,
+      sponsorName: "Irmã Maria",
+      isDonation: false,
+      notes: "Lote de chaveiros de metal resinado",
+      operatorName: "Admin",
+    },
+  ]);
+  console.log(`✔️ Lotes de Entradas de Estoque (StockEntries) cadastrados.`);
 
   // 7. Despesas de Infraestrutura e Operacionais nos 2 Eventos
   // a) Despesas do Evento Passado (2025)

@@ -31,4 +31,9 @@ export class UsersController {
   async update(@Param("id") id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
+
+  @Patch(":id/charged")
+  async markCharged(@Param("id") id: string) {
+    return this.usersService.markCharged(id);
+  }
 }

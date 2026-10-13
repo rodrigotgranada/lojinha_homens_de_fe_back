@@ -15,6 +15,8 @@ import { LogsModule } from "./logs/logs.module";
 import { CategoriesModule } from "./categories/categories.module";
 import { SyncModule } from "./sync/sync.module";
 import { ExpensesModule } from "./expenses/expenses.module";
+import { StockEntriesModule } from "./stock-entries/stock-entries.module";
+import { PaymentConfigModule } from "./payment-config/payment-config.module";
 
 @Module({
   imports: [
@@ -50,6 +52,8 @@ import { ExpensesModule } from "./expenses/expenses.module";
     CategoriesModule,
     SyncModule,
     ExpensesModule,
+    StockEntriesModule,
+    PaymentConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],

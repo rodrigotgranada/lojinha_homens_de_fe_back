@@ -47,4 +47,22 @@ export class UsersService {
     }
     return updated;
   }
+
+  async markCharged(id: string): Promise<User> {
+    const updated = await this.userModel
+      .findByIdAndUpdate(
+        id,
+        {
+          $set: { lastChargedAt: new Date() },
+          $inc: { chargeCount: 1 },
+        },
+        { returnDocument: "after" as any }
+      )
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    return updated;
+  }
 }

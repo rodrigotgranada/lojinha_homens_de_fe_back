@@ -19,21 +19,25 @@ const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const product_schema_1 = require("../schemas/product.schema");
 const category_schema_1 = require("../schemas/category.schema");
+const stock_entry_schema_1 = require("../schemas/stock-entry.schema");
 const firebase_service_1 = require("../firebase/firebase.service");
 const websocket_gateway_1 = require("../websocket/websocket.gateway");
 const logs_service_1 = require("../logs/logs.service");
 const expenses_service_1 = require("../expenses/expenses.service");
+const money_util_1 = require("../common/utils/money.util");
 let ProductsService = ProductsService_1 = class ProductsService {
     productModel;
     categoryModel;
+    stockEntryModel;
     firebaseService;
     wsGateway;
     logsService;
     expensesService;
     logger = new common_1.Logger(ProductsService_1.name);
-    constructor(productModel, categoryModel, firebaseService, wsGateway, logsService, expensesService) {
+    constructor(productModel, categoryModel, stockEntryModel, firebaseService, wsGateway, logsService, expensesService) {
         this.productModel = productModel;
         this.categoryModel = categoryModel;
+        this.stockEntryModel = stockEntryModel;
         this.firebaseService = firebaseService;
         this.wsGateway = wsGateway;
         this.logsService = logsService;
@@ -120,6 +124,31 @@ let ProductsService = ProductsService_1 = class ProductsService {
                 catch (err) {
                     this.logger.error("Failed to auto-create expense item for product", err);
                 }
+            }
+        }
+        if (saved.stock > 0) {
+            try {
+                const initialQty = saved.stock;
+                const unitCost = totalCost && initialQty > 0
+                    ? (0, money_util_1.roundMoney)(totalCost / initialQty)
+                    : 0;
+                await this.stockEntryModel.create({
+                    productId: saved._id,
+                    eventId: saved.eventId,
+                    quantity: initialQty,
+                    costPrice: unitCost,
+                    totalCost: totalCost || 0,
+                    sponsorName: (sponsorName || "").trim(),
+                    sponsorCpf: (sponsorCpf || "").trim(),
+                    sponsorPhone: (sponsorPhone || "").trim(),
+                    isDonation: isDonation || false,
+                    date: new Date(),
+                    notes: "Lote de entrada inicial cadastrado com o produto.",
+                    operatorName: "Sistema",
+                });
+            }
+            catch (entryErr) {
+                this.logger.error("Failed to auto-create initial StockEntry for product", entryErr);
             }
         }
         return populatedProduct;
@@ -314,7 +343,9 @@ exports.ProductsService = ProductsService = ProductsService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, mongoose_1.InjectModel)(product_schema_1.Product.name)),
     __param(1, (0, mongoose_1.InjectModel)(category_schema_1.Category.name)),
+    __param(2, (0, mongoose_1.InjectModel)(stock_entry_schema_1.StockEntry.name)),
     __metadata("design:paramtypes", [mongoose_2.Model,
+        mongoose_2.Model,
         mongoose_2.Model,
         firebase_service_1.FirebaseService,
         websocket_gateway_1.WebsocketGateway,

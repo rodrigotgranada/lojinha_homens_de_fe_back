@@ -35,6 +35,12 @@ export class User extends Document {
 
   @Prop({ type: Date, required: false })
   synchronizedAt?: Date;
+
+  @Prop({ type: Date, required: false })
+  lastChargedAt?: Date;
+
+  @Prop({ type: Number, default: 0 })
+  chargeCount?: number;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

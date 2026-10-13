@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+import { Model, Types } from "mongoose";
 import { Sale } from "../schemas/sale.schema";
 import { ProductsService } from "../products/products.service";
 import { LogsService } from "../logs/logs.service";
@@ -30,8 +30,11 @@ export class SalesService {
   }
 
   async findByCustomer(customerId: string): Promise<Sale[]> {
+    const objectId = Types.ObjectId.isValid(customerId) ? new Types.ObjectId(customerId) : null;
+    const filter = objectId ? { $or: [{ customerId: objectId }, { customerId }] } : { customerId };
+
     return this.saleModel
-      .find({ customerId })
+      .find(filter)
       .populate("customerId")
       .populate("items.productId")
       .sort({ createdAt: -1 })
@@ -116,8 +119,13 @@ export class SalesService {
   }
 
   async payAllCustomerSales(customerId: string): Promise<{ updatedCount: number; totalPaid: number }> {
+    const objectId = Types.ObjectId.isValid(customerId) ? new Types.ObjectId(customerId) : null;
+    const filter = objectId
+      ? { $or: [{ customerId: objectId }, { customerId }], status: "PENDENTE" }
+      : { customerId, status: "PENDENTE" };
+
     const pendingSales = await this.saleModel
-      .find({ customerId, status: "PENDENTE" })
+      .find(filter)
       .populate("customerId")
       .exec();
 
@@ -136,6 +144,15 @@ export class SalesService {
         { $set: { status: "PAGO" } }
       )
       .exec();
+
+    // Reset da flag de cobrança do cliente pois as pendências foram 100% quitadas
+    try {
+      await this.saleModel.db.model("User").findByIdAndUpdate(customerId, {
+        $set: { lastChargedAt: null, chargeCount: 0 }
+      }).exec();
+    } catch (e) {
+      // ignore
+    }
 
     const customerObj = pendingSales[0].customerId as any;
     const customerName = customerObj?.firstName

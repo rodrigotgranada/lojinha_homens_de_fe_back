@@ -18,13 +18,16 @@ const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const sale_schema_1 = require("../schemas/sale.schema");
 const product_schema_1 = require("../schemas/product.schema");
+const stock_entry_schema_1 = require("../schemas/stock-entry.schema");
 const money_util_1 = require("../common/utils/money.util");
 let SalesAnalyticsService = class SalesAnalyticsService {
     saleModel;
     productModel;
-    constructor(saleModel, productModel) {
+    stockEntryModel;
+    constructor(saleModel, productModel, stockEntryModel) {
         this.saleModel = saleModel;
         this.productModel = productModel;
+        this.stockEntryModel = stockEntryModel;
     }
     async getEventAnalytics(eventId) {
         if (!eventId || !mongoose_2.Types.ObjectId.isValid(eventId)) {
@@ -140,53 +143,120 @@ let SalesAnalyticsService = class SalesAnalyticsService {
                 productSalesMap[pId].revenue += item.quantity * item.priceAtPurchase;
             });
         });
+        const productIds = eventProducts.map(p => p._id);
+        const stockEntries = await this.stockEntryModel.find({
+            $or: [
+                { eventId: saleEventId },
+                { eventId: eventId },
+                { productId: { $in: productIds } }
+            ]
+        }).exec();
+        const entriesByProduct = {};
+        stockEntries.forEach((entry) => {
+            const pId = entry.productId.toString();
+            if (!entriesByProduct[pId]) {
+                entriesByProduct[pId] = [];
+            }
+            entriesByProduct[pId].push(entry);
+        });
         const investorsMap = {};
         eventProducts.forEach((prod) => {
             const pId = prod._id.toString();
             const prodObj = prod;
-            const sponsor = (prodObj.sponsorName && prodObj.sponsorName.trim() !== "") ? prodObj.sponsorName : "Fundo Próprio / Retiro";
-            const isDonation = prodObj.isDonation || false;
-            const investedAmount = prodObj.totalCost || 0;
             const salesData = productSalesMap[pId] || { quantity: 0, revenue: 0 };
             const soldQty = salesData.quantity;
             const totalRev = salesData.revenue;
-            const initialStk = prod.initialStock || (prod.stock + soldQty) || 1;
-            const unitCost = investedAmount / initialStk;
-            let costToRepay = isDonation ? 0 : (0, money_util_1.roundMoney)(unitCost * soldQty);
-            if (costToRepay > investedAmount)
-                costToRepay = investedAmount;
-            const totalProfit = (0, money_util_1.roundMoney)(totalRev - costToRepay);
-            if (!investorsMap[sponsor]) {
-                investorsMap[sponsor] = {
-                    sponsorName: sponsor,
-                    products: [],
-                    totalInvested: 0,
-                    totalSoldQuantity: 0,
-                    totalRevenue: 0,
-                    totalToRepay: 0,
-                    totalProfitForRetreat: 0,
-                    repaymentProgress: 0,
-                };
+            const pEntries = entriesByProduct[pId] || [];
+            if (pEntries.length > 0) {
+                const totalEntriesQty = pEntries.reduce((sum, e) => sum + (e.quantity || 0), 0);
+                pEntries.forEach((entry) => {
+                    const sponsor = (entry.sponsorName && entry.sponsorName.trim() !== "")
+                        ? entry.sponsorName.trim()
+                        : "Fundo Próprio / Retiro";
+                    const isDonation = !!entry.isDonation;
+                    const investedAmount = isDonation ? 0 : (entry.totalCost || 0);
+                    const sponsorRatio = totalEntriesQty > 0 ? (entry.quantity / totalEntriesQty) : 0;
+                    const entrySoldQty = Math.min(entry.quantity, Math.round(soldQty * sponsorRatio));
+                    let costToRepay = isDonation ? 0 : (0, money_util_1.roundMoney)(entrySoldQty * entry.costPrice);
+                    if (costToRepay > investedAmount)
+                        costToRepay = investedAmount;
+                    const entryRev = soldQty > 0 ? (0, money_util_1.roundMoney)(totalRev * (entrySoldQty / soldQty)) : 0;
+                    const totalProfit = (0, money_util_1.roundMoney)(entryRev - costToRepay);
+                    if (!investorsMap[sponsor]) {
+                        investorsMap[sponsor] = {
+                            sponsorName: sponsor,
+                            products: [],
+                            totalInvested: 0,
+                            totalSoldQuantity: 0,
+                            totalRevenue: 0,
+                            totalToRepay: 0,
+                            totalProfitForRetreat: 0,
+                            repaymentProgress: 0,
+                        };
+                    }
+                    const prodItem = {
+                        productId: pId,
+                        name: pEntries.length > 1 ? `${prod.name} (Lote: ${entry.quantity} un.)` : prod.name,
+                        costPrice: isDonation ? 0 : (0, money_util_1.roundMoney)(entry.costPrice),
+                        salePrice: prod.price,
+                        initialStock: entry.quantity,
+                        currentStock: Math.max(0, entry.quantity - entrySoldQty),
+                        soldQuantity: entrySoldQty,
+                        totalRevenue: (0, money_util_1.roundMoney)(entryRev),
+                        costToRepay,
+                        totalProfit,
+                        investedAmount,
+                    };
+                    investorsMap[sponsor].products.push(prodItem);
+                    investorsMap[sponsor].totalInvested = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalInvested + prodItem.investedAmount);
+                    investorsMap[sponsor].totalSoldQuantity += prodItem.soldQuantity;
+                    investorsMap[sponsor].totalRevenue = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalRevenue + prodItem.totalRevenue);
+                    investorsMap[sponsor].totalToRepay = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalToRepay + prodItem.costToRepay);
+                    investorsMap[sponsor].totalProfitForRetreat = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalProfitForRetreat + prodItem.totalProfit);
+                });
             }
-            const prodItem = {
-                productId: pId,
-                name: prod.name,
-                costPrice: isDonation ? 0 : (0, money_util_1.roundMoney)(unitCost),
-                salePrice: prod.price,
-                initialStock: prod.initialStock || prod.stock,
-                currentStock: prod.stock,
-                soldQuantity: soldQty,
-                totalRevenue: (0, money_util_1.roundMoney)(totalRev),
-                costToRepay,
-                totalProfit,
-                investedAmount: isDonation ? 0 : investedAmount,
-            };
-            investorsMap[sponsor].products.push(prodItem);
-            investorsMap[sponsor].totalInvested = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalInvested + prodItem.investedAmount);
-            investorsMap[sponsor].totalSoldQuantity += prodItem.soldQuantity;
-            investorsMap[sponsor].totalRevenue = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalRevenue + prodItem.totalRevenue);
-            investorsMap[sponsor].totalToRepay = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalToRepay + prodItem.costToRepay);
-            investorsMap[sponsor].totalProfitForRetreat = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalProfitForRetreat + prodItem.totalProfit);
+            else {
+                const sponsor = (prodObj.sponsorName && prodObj.sponsorName.trim() !== "") ? prodObj.sponsorName : "Fundo Próprio / Retiro";
+                const isDonation = prodObj.isDonation || false;
+                const investedAmount = prodObj.totalCost || 0;
+                const initialStk = prod.initialStock || (prod.stock + soldQty) || 1;
+                const unitCost = investedAmount / initialStk;
+                let costToRepay = isDonation ? 0 : (0, money_util_1.roundMoney)(unitCost * soldQty);
+                if (costToRepay > investedAmount)
+                    costToRepay = investedAmount;
+                const totalProfit = (0, money_util_1.roundMoney)(totalRev - costToRepay);
+                if (!investorsMap[sponsor]) {
+                    investorsMap[sponsor] = {
+                        sponsorName: sponsor,
+                        products: [],
+                        totalInvested: 0,
+                        totalSoldQuantity: 0,
+                        totalRevenue: 0,
+                        totalToRepay: 0,
+                        totalProfitForRetreat: 0,
+                        repaymentProgress: 0,
+                    };
+                }
+                const prodItem = {
+                    productId: pId,
+                    name: prod.name,
+                    costPrice: isDonation ? 0 : (0, money_util_1.roundMoney)(unitCost),
+                    salePrice: prod.price,
+                    initialStock: prod.initialStock || prod.stock,
+                    currentStock: prod.stock,
+                    soldQuantity: soldQty,
+                    totalRevenue: (0, money_util_1.roundMoney)(totalRev),
+                    costToRepay,
+                    totalProfit,
+                    investedAmount: isDonation ? 0 : investedAmount,
+                };
+                investorsMap[sponsor].products.push(prodItem);
+                investorsMap[sponsor].totalInvested = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalInvested + prodItem.investedAmount);
+                investorsMap[sponsor].totalSoldQuantity += prodItem.soldQuantity;
+                investorsMap[sponsor].totalRevenue = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalRevenue + prodItem.totalRevenue);
+                investorsMap[sponsor].totalToRepay = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalToRepay + prodItem.costToRepay);
+                investorsMap[sponsor].totalProfitForRetreat = (0, money_util_1.roundMoney)(investorsMap[sponsor].totalProfitForRetreat + prodItem.totalProfit);
+            }
         });
         const investorsReport = Object.values(investorsMap).map((inv) => {
             inv.repaymentProgress = inv.totalInvested > 0
@@ -251,7 +321,9 @@ exports.SalesAnalyticsService = SalesAnalyticsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, mongoose_1.InjectModel)(sale_schema_1.Sale.name)),
     __param(1, (0, mongoose_1.InjectModel)(product_schema_1.Product.name)),
+    __param(2, (0, mongoose_1.InjectModel)(stock_entry_schema_1.StockEntry.name)),
     __metadata("design:paramtypes", [mongoose_2.Model,
+        mongoose_2.Model,
         mongoose_2.Model])
 ], SalesAnalyticsService);
 //# sourceMappingURL=sales-analytics.service.js.map
