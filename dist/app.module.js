@@ -32,6 +32,7 @@ const sync_module_1 = require("./sync/sync.module");
 const expenses_module_1 = require("./expenses/expenses.module");
 const stock_entries_module_1 = require("./stock-entries/stock-entries.module");
 const payment_config_module_1 = require("./payment-config/payment-config.module");
+const event_participants_module_1 = require("./event-participants/event-participants.module");
 let AppModule = class AppModule {
     connection;
     firebaseService;
@@ -182,6 +183,7 @@ exports.AppModule = AppModule = __decorate([
             expenses_module_1.ExpensesModule,
             stock_entries_module_1.StockEntriesModule,
             payment_config_module_1.PaymentConfigModule,
+            event_participants_module_1.EventParticipantsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

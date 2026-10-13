@@ -21,12 +21,21 @@ let UsersController = class UsersController {
     constructor(usersService) {
         this.usersService = usersService;
     }
-    async findAll(cpf) {
+    async findAll(cpf, eventId, all) {
         if (cpf) {
             const user = await this.usersService.findOneByCpf(cpf);
             return user ? [user] : [];
         }
+        if (eventId && all !== "true") {
+            return this.usersService.findByEvent(eventId);
+        }
         return this.usersService.findAll();
+    }
+    async search(query = "", eventId) {
+        return this.usersService.searchUsers(query, eventId);
+    }
+    async linkToEvent(userId, body) {
+        return this.usersService.linkToEvent(userId, body.eventId, body.type || "ACAMPANTE", body.operator || "PDV");
     }
     async findOne(id) {
         return this.usersService.findOne(id);
@@ -45,10 +54,28 @@ exports.UsersController = UsersController;
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)("cpf")),
+    __param(1, (0, common_1.Query)("eventId")),
+    __param(2, (0, common_1.Query)("all")),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)("search"),
+    __param(0, (0, common_1.Query)("q")),
+    __param(1, (0, common_1.Query)("eventId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "search", null);
+__decorate([
+    (0, common_1.Post)(":id/link-event"),
+    __param(0, (0, common_1.Param)("id")),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "linkToEvent", null);
 __decorate([
     (0, common_1.Get)(":id"),
     __param(0, (0, common_1.Param)("id")),

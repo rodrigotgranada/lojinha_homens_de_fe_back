@@ -17,6 +17,7 @@ import { SyncModule } from "./sync/sync.module";
 import { ExpensesModule } from "./expenses/expenses.module";
 import { StockEntriesModule } from "./stock-entries/stock-entries.module";
 import { PaymentConfigModule } from "./payment-config/payment-config.module";
+import { EventParticipantsModule } from "./event-participants/event-participants.module";
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { PaymentConfigModule } from "./payment-config/payment-config.module";
     ExpensesModule,
     StockEntriesModule,
     PaymentConfigModule,
+    EventParticipantsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

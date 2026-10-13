@@ -7,11 +7,14 @@ export class SalesController {
   constructor(private readonly salesService: SalesService) {}
 
   @Get()
-  async findAll(@Query("customerId") customerId?: string) {
+  async findAll(
+    @Query("customerId") customerId?: string,
+    @Query("eventId") eventId?: string
+  ) {
     if (customerId) {
       return this.salesService.findByCustomer(customerId);
     }
-    return this.salesService.findAll();
+    return this.salesService.findAll(eventId);
   }
 
   @Post()

@@ -21,11 +21,11 @@ let SalesController = class SalesController {
     constructor(salesService) {
         this.salesService = salesService;
     }
-    async findAll(customerId) {
+    async findAll(customerId, eventId) {
         if (customerId) {
             return this.salesService.findByCustomer(customerId);
         }
-        return this.salesService.findAll();
+        return this.salesService.findAll(eventId);
     }
     async create(createSaleDto) {
         return this.salesService.create(createSaleDto);
@@ -44,8 +44,9 @@ exports.SalesController = SalesController;
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)("customerId")),
+    __param(1, (0, common_1.Query)("eventId")),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], SalesController.prototype, "findAll", null);
 __decorate([

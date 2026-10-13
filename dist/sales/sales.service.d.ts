@@ -8,7 +8,7 @@ export declare class SalesService {
     private readonly productsService;
     private readonly logsService;
     constructor(saleModel: Model<Sale>, productsService: ProductsService, logsService: LogsService);
-    findAll(): Promise<Sale[]>;
+    findAll(eventId?: string): Promise<Sale[]>;
     findByCustomer(customerId: string): Promise<Sale[]>;
     create(createSaleDto: CreateSaleDto): Promise<Sale>;
     updateStatus(id: string, status: string): Promise<Sale>;

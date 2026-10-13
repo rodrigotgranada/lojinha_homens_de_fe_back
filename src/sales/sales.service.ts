@@ -15,10 +15,17 @@ export class SalesService {
     private readonly logsService: LogsService
   ) {}
 
-  async findAll(): Promise<Sale[]> {
+  async findAll(eventId?: string): Promise<Sale[]> {
     try {
+      const filter: any = {};
+      if (eventId && Types.ObjectId.isValid(eventId)) {
+        filter.$or = [
+          { eventId: new Types.ObjectId(eventId) },
+          { eventId: eventId },
+        ];
+      }
       return await this.saleModel
-        .find()
+        .find(filter)
         .populate("customerId")
         .populate("items.productId")
         .sort({ createdAt: -1 })

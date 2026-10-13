@@ -29,10 +29,17 @@ let SalesService = class SalesService {
         this.productsService = productsService;
         this.logsService = logsService;
     }
-    async findAll() {
+    async findAll(eventId) {
         try {
+            const filter = {};
+            if (eventId && mongoose_2.Types.ObjectId.isValid(eventId)) {
+                filter.$or = [
+                    { eventId: new mongoose_2.Types.ObjectId(eventId) },
+                    { eventId: eventId },
+                ];
+            }
             return await this.saleModel
-                .find()
+                .find(filter)
                 .populate("customerId")
                 .populate("items.productId")
                 .sort({ createdAt: -1 })

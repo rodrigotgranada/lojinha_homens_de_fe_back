@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Body, Query, Param, NotFoundException } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Query,
+  Param,
+  NotFoundException,
+} from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { CreateUserDto, UpdateUserDto } from "./dto/user.dto";
 
@@ -7,14 +16,42 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  async findAll(@Query("cpf") cpf?: string) {
+  async findAll(
+    @Query("cpf") cpf?: string,
+    @Query("eventId") eventId?: string,
+    @Query("all") all?: string
+  ) {
     if (cpf) {
-      // json-server compatibility: returns user if found, or empty array or null
-      // Let's return single user or null
       const user = await this.usersService.findOneByCpf(cpf);
       return user ? [user] : [];
     }
+
+    if (eventId && all !== "true") {
+      return this.usersService.findByEvent(eventId);
+    }
+
     return this.usersService.findAll();
+  }
+
+  @Get("search")
+  async search(
+    @Query("q") query: string = "",
+    @Query("eventId") eventId?: string
+  ) {
+    return this.usersService.searchUsers(query, eventId);
+  }
+
+  @Post(":id/link-event")
+  async linkToEvent(
+    @Param("id") userId: string,
+    @Body() body: { eventId: string; type?: "ACAMPANTE" | "TRABALHO"; operator?: string }
+  ) {
+    return this.usersService.linkToEvent(
+      userId,
+      body.eventId,
+      body.type || "ACAMPANTE",
+      body.operator || "PDV"
+    );
   }
 
   @Get(":id")

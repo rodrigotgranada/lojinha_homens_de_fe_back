@@ -3,7 +3,7 @@ import { CreateSaleDto, CancelSaleDto, UpdateSaleStatusDto } from "./dto/sale.dt
 export declare class SalesController {
     private readonly salesService;
     constructor(salesService: SalesService);
-    findAll(customerId?: string): Promise<import("../schemas/sale.schema").Sale[]>;
+    findAll(customerId?: string, eventId?: string): Promise<import("../schemas/sale.schema").Sale[]>;
     create(createSaleDto: CreateSaleDto): Promise<import("../schemas/sale.schema").Sale>;
     payAllByCustomer(customerId: string): Promise<{
         updatedCount: number;
