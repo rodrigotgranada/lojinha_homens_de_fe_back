@@ -4,6 +4,7 @@ import { Model, Types } from "mongoose";
 import { Product } from "../schemas/product.schema";
 import { Category } from "../schemas/category.schema";
 import { StockEntry } from "../schemas/stock-entry.schema";
+import { EventStock } from "../schemas/event-stock.schema";
 import { FirebaseService } from "../firebase/firebase.service";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
 import { LogsService } from "../logs/logs.service";
@@ -20,6 +21,7 @@ export class ProductsService {
     @InjectModel(Product.name) private productModel: Model<Product>,
     @InjectModel(Category.name) private categoryModel: Model<Category>,
     @InjectModel(StockEntry.name) private stockEntryModel: Model<StockEntry>,
+    @InjectModel(EventStock.name) private eventStockModel: Model<EventStock>,
     private firebaseService: FirebaseService,
     private wsGateway: WebsocketGateway,
     private logsService: LogsService,
@@ -35,7 +37,7 @@ export class ProductsService {
     return category;
   }
 
-  async findAll(includeInactive = false, eventId?: string): Promise<Product[]> {
+  async findAll(includeInactive = false, eventId?: string): Promise<any[]> {
     const filter: any = includeInactive ? {} : { active: { $ne: false } };
     if (eventId && Types.ObjectId.isValid(eventId)) {
       filter.$or = [
@@ -44,7 +46,39 @@ export class ProductsService {
         { eventId: { $exists: false } },
       ];
     }
-    return this.productModel.find(filter).populate("categoryRef").exec();
+    const products = await this.productModel.find(filter).populate("categoryRef").exec();
+
+    if (eventId && Types.ObjectId.isValid(eventId)) {
+      const eventObjId = new Types.ObjectId(eventId);
+      const eventStocks = await this.eventStockModel.find({ eventId: eventObjId }).exec();
+      const stockMap = new Map<string, any>();
+      eventStocks.forEach((es) => stockMap.set(es.productId.toString(), es));
+
+      return products.map((p) => {
+        const pObj = typeof (p as any).toObject === "function" ? (p as any).toObject() : p;
+        const es = stockMap.get(p._id.toString());
+        if (es) {
+          return {
+            ...pObj,
+            id: pObj._id ? pObj._id.toString() : pObj.id,
+            stock: es.stock,
+            initialStock: es.initialStock,
+            minStock: es.minStock !== undefined ? es.minStock : pObj.minStock,
+            price: es.price !== undefined && es.price > 0 ? es.price : pObj.price,
+            totalCost: es.totalCost !== undefined ? es.totalCost : pObj.totalCost,
+            sponsorName: es.sponsorName || pObj.sponsorName,
+            isDonation: es.isDonation !== undefined ? es.isDonation : pObj.isDonation,
+            eventStockId: es._id.toString(),
+          };
+        }
+        return {
+          ...pObj,
+          id: pObj._id ? pObj._id.toString() : pObj.id,
+        };
+      });
+    }
+
+    return products;
   }
 
   async findOne(id: string): Promise<Product> {
@@ -222,9 +256,21 @@ export class ProductsService {
   }
 
   // Operação atômica direta com $set
-  async updateStock(id: string, newStock: number): Promise<Product> {
+  async updateStock(id: string, newStock: number, eventId?: string): Promise<Product> {
+    const safeStock = Math.max(0, newStock);
+
+    if (eventId && Types.ObjectId.isValid(eventId)) {
+      const eventObjId = new Types.ObjectId(eventId);
+      const prodObjId = new Types.ObjectId(id);
+      await this.eventStockModel.updateOne(
+        { eventId: eventObjId, productId: prodObjId },
+        { $set: { stock: safeStock, updatedAt: new Date() } },
+        { upsert: true }
+      ).exec();
+    }
+
     const updatedProduct = await this.productModel
-      .findByIdAndUpdate(id, { stock: Math.max(0, newStock) }, { new: true, returnDocument: 'after' as any })
+      .findByIdAndUpdate(id, { stock: safeStock }, { new: true, returnDocument: 'after' as any })
       .populate("categoryRef")
       .exec();
 
@@ -239,7 +285,17 @@ export class ProductsService {
   }
 
   // Operação atômica incremental ($inc) para vendas e estornos com proteção de concorrência
-  async incrementStock(id: string, delta: number): Promise<Product> {
+  async incrementStock(id: string, delta: number, eventId?: string): Promise<Product> {
+    if (eventId && Types.ObjectId.isValid(eventId)) {
+      const eventObjId = new Types.ObjectId(eventId);
+      const prodObjId = new Types.ObjectId(id);
+      await this.eventStockModel.updateOne(
+        { eventId: eventObjId, productId: prodObjId },
+        { $inc: { stock: delta }, $set: { updatedAt: new Date() } },
+        { upsert: false }
+      ).exec();
+    }
+
     const updatedProduct = await this.productModel
       .findByIdAndUpdate(
         id,

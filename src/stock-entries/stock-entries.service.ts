@@ -8,6 +8,7 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import { StockEntry } from "../schemas/stock-entry.schema";
 import { Product } from "../schemas/product.schema";
+import { EventStock } from "../schemas/event-stock.schema";
 import { WebsocketGateway } from "../websocket/websocket.gateway";
 import { LogsService } from "../logs/logs.service";
 import { ExpensesService } from "../expenses/expenses.service";
@@ -23,6 +24,8 @@ export class StockEntriesService {
     private readonly stockEntryModel: Model<StockEntry>,
     @InjectModel(Product.name)
     private readonly productModel: Model<Product>,
+    @InjectModel(EventStock.name)
+    private readonly eventStockModel: Model<EventStock>,
     private readonly wsGateway: WebsocketGateway,
     private readonly logsService: LogsService,
     private readonly expensesService: ExpensesService
@@ -126,7 +129,34 @@ export class StockEntriesService {
 
     const savedEntry = await stockEntry.save();
 
-    // 3. Atualizar estoque do produto de forma incremental
+    // 3. Atualizar estoque do evento (EventStock) se houver evento
+    if (eventId && Types.ObjectId.isValid(eventId)) {
+      const eventObjId = new Types.ObjectId(eventId);
+      await this.eventStockModel.updateOne(
+        { eventId: eventObjId, productId: product._id },
+        {
+          $inc: {
+            stock: quantity,
+            initialStock: quantity,
+            totalCost: isDonation ? 0 : totalCost,
+          },
+          $setOnInsert: {
+            minStock: product.minStock || 5,
+            price: product.price,
+            sponsorName: dto.sponsorName || "",
+            sponsorCpf: dto.sponsorCpf || "",
+            isDonation: isDonation,
+            createdAt: new Date(),
+          },
+          $set: {
+            updatedAt: new Date(),
+          },
+        },
+        { upsert: true }
+      ).exec();
+    }
+
+    // Atualizar estoque mestre do produto de forma incremental
     const updatedProduct = await this.productModel
       .findByIdAndUpdate(
         product._id,
@@ -236,6 +266,19 @@ export class StockEntriesService {
     const entry = await this.stockEntryModel.findById(id).exec();
     if (!entry) {
       throw new NotFoundException(`Entrada de estoque #${id} não encontrada`);
+    }
+
+    if (entry.eventId) {
+      await this.eventStockModel.updateOne(
+        { eventId: entry.eventId, productId: entry.productId },
+        {
+          $inc: {
+            stock: -entry.quantity,
+            initialStock: -entry.quantity,
+            totalCost: -(entry.isDonation ? 0 : entry.totalCost),
+          },
+        }
+      ).exec();
     }
 
     const product = await this.productModel.findById(entry.productId).exec();

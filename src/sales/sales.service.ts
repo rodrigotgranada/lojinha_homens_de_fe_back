@@ -71,7 +71,7 @@ export class SalesService {
 
         // Baixa no estoque
         try {
-          await this.productsService.incrementStock(item.productId, -item.quantity);
+          await this.productsService.incrementStock(item.productId, -item.quantity, createSaleDto.eventId);
           decrementedItems.push({ productId: item.productId, quantity: item.quantity });
         } catch (err) {
           console.error(`Falha ao decrementar estoque de ${item.productId}:`, err);
@@ -89,7 +89,7 @@ export class SalesService {
       // Rollback manual (compensação) se o banco não for replica set
       for (const item of decrementedItems) {
         try {
-          await this.productsService.incrementStock(item.productId, item.quantity);
+          await this.productsService.incrementStock(item.productId, item.quantity, createSaleDto.eventId);
         } catch (rollbackErr) {
           console.error(`Falha no rollback de estoque para ${item.productId}:`, rollbackErr);
         }
@@ -236,7 +236,11 @@ export class SalesService {
         : item.productId.toString();
       try {
         console.log(`[SalesService] Incrementing stock atomically for product ${productIdStr} by +${item.quantity}`);
-        await this.productsService.incrementStock(productIdStr, item.quantity);
+        await this.productsService.incrementStock(
+          productIdStr,
+          item.quantity,
+          sale.eventId ? sale.eventId.toString() : undefined
+        );
       } catch (err) {
         console.error(`Falha ao estornar estoque atomicamente do produto ${productIdStr}:`, err);
       }

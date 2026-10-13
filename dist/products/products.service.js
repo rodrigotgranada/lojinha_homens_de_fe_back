@@ -20,6 +20,7 @@ const mongoose_2 = require("mongoose");
 const product_schema_1 = require("../schemas/product.schema");
 const category_schema_1 = require("../schemas/category.schema");
 const stock_entry_schema_1 = require("../schemas/stock-entry.schema");
+const event_stock_schema_1 = require("../schemas/event-stock.schema");
 const firebase_service_1 = require("../firebase/firebase.service");
 const websocket_gateway_1 = require("../websocket/websocket.gateway");
 const logs_service_1 = require("../logs/logs.service");
@@ -29,15 +30,17 @@ let ProductsService = ProductsService_1 = class ProductsService {
     productModel;
     categoryModel;
     stockEntryModel;
+    eventStockModel;
     firebaseService;
     wsGateway;
     logsService;
     expensesService;
     logger = new common_1.Logger(ProductsService_1.name);
-    constructor(productModel, categoryModel, stockEntryModel, firebaseService, wsGateway, logsService, expensesService) {
+    constructor(productModel, categoryModel, stockEntryModel, eventStockModel, firebaseService, wsGateway, logsService, expensesService) {
         this.productModel = productModel;
         this.categoryModel = categoryModel;
         this.stockEntryModel = stockEntryModel;
+        this.eventStockModel = eventStockModel;
         this.firebaseService = firebaseService;
         this.wsGateway = wsGateway;
         this.logsService = logsService;
@@ -60,7 +63,36 @@ let ProductsService = ProductsService_1 = class ProductsService {
                 { eventId: { $exists: false } },
             ];
         }
-        return this.productModel.find(filter).populate("categoryRef").exec();
+        const products = await this.productModel.find(filter).populate("categoryRef").exec();
+        if (eventId && mongoose_2.Types.ObjectId.isValid(eventId)) {
+            const eventObjId = new mongoose_2.Types.ObjectId(eventId);
+            const eventStocks = await this.eventStockModel.find({ eventId: eventObjId }).exec();
+            const stockMap = new Map();
+            eventStocks.forEach((es) => stockMap.set(es.productId.toString(), es));
+            return products.map((p) => {
+                const pObj = typeof p.toObject === "function" ? p.toObject() : p;
+                const es = stockMap.get(p._id.toString());
+                if (es) {
+                    return {
+                        ...pObj,
+                        id: pObj._id ? pObj._id.toString() : pObj.id,
+                        stock: es.stock,
+                        initialStock: es.initialStock,
+                        minStock: es.minStock !== undefined ? es.minStock : pObj.minStock,
+                        price: es.price !== undefined && es.price > 0 ? es.price : pObj.price,
+                        totalCost: es.totalCost !== undefined ? es.totalCost : pObj.totalCost,
+                        sponsorName: es.sponsorName || pObj.sponsorName,
+                        isDonation: es.isDonation !== undefined ? es.isDonation : pObj.isDonation,
+                        eventStockId: es._id.toString(),
+                    };
+                }
+                return {
+                    ...pObj,
+                    id: pObj._id ? pObj._id.toString() : pObj.id,
+                };
+            });
+        }
+        return products;
     }
     async findOne(id) {
         const product = await this.productModel.findById(id).populate("categoryRef").exec();
@@ -206,9 +238,15 @@ let ProductsService = ProductsService_1 = class ProductsService {
         this.wsGateway.broadcastProductChange(populatedProduct);
         return { url: imageUrl };
     }
-    async updateStock(id, newStock) {
+    async updateStock(id, newStock, eventId) {
+        const safeStock = Math.max(0, newStock);
+        if (eventId && mongoose_2.Types.ObjectId.isValid(eventId)) {
+            const eventObjId = new mongoose_2.Types.ObjectId(eventId);
+            const prodObjId = new mongoose_2.Types.ObjectId(id);
+            await this.eventStockModel.updateOne({ eventId: eventObjId, productId: prodObjId }, { $set: { stock: safeStock, updatedAt: new Date() } }, { upsert: true }).exec();
+        }
         const updatedProduct = await this.productModel
-            .findByIdAndUpdate(id, { stock: Math.max(0, newStock) }, { new: true, returnDocument: 'after' })
+            .findByIdAndUpdate(id, { stock: safeStock }, { new: true, returnDocument: 'after' })
             .populate("categoryRef")
             .exec();
         if (!updatedProduct) {
@@ -218,7 +256,12 @@ let ProductsService = ProductsService_1 = class ProductsService {
         this.wsGateway.broadcastProductChange(updatedProduct);
         return updatedProduct;
     }
-    async incrementStock(id, delta) {
+    async incrementStock(id, delta, eventId) {
+        if (eventId && mongoose_2.Types.ObjectId.isValid(eventId)) {
+            const eventObjId = new mongoose_2.Types.ObjectId(eventId);
+            const prodObjId = new mongoose_2.Types.ObjectId(id);
+            await this.eventStockModel.updateOne({ eventId: eventObjId, productId: prodObjId }, { $inc: { stock: delta }, $set: { updatedAt: new Date() } }, { upsert: false }).exec();
+        }
         const updatedProduct = await this.productModel
             .findByIdAndUpdate(id, { $inc: { stock: delta } }, { new: true, returnDocument: 'after' })
             .populate("categoryRef")
@@ -344,7 +387,9 @@ exports.ProductsService = ProductsService = ProductsService_1 = __decorate([
     __param(0, (0, mongoose_1.InjectModel)(product_schema_1.Product.name)),
     __param(1, (0, mongoose_1.InjectModel)(category_schema_1.Category.name)),
     __param(2, (0, mongoose_1.InjectModel)(stock_entry_schema_1.StockEntry.name)),
+    __param(3, (0, mongoose_1.InjectModel)(event_stock_schema_1.EventStock.name)),
     __metadata("design:paramtypes", [mongoose_2.Model,
+        mongoose_2.Model,
         mongoose_2.Model,
         mongoose_2.Model,
         firebase_service_1.FirebaseService,

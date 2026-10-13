@@ -4,7 +4,7 @@ import { ImportPreviousStockDto } from "./dto/import-previous-stock.dto";
 export declare class ProductsController {
     private readonly productsService;
     constructor(productsService: ProductsService);
-    findAll(includeAll?: string, eventId?: string): Promise<import("../schemas/product.schema").Product[]>;
+    findAll(includeAll?: string, eventId?: string): Promise<any[]>;
     getRemainingStock(eventId: string): Promise<import("../schemas/product.schema").Product[]>;
     importStockReconciliation(dto: ImportPreviousStockDto): Promise<{
         importedCount: number;

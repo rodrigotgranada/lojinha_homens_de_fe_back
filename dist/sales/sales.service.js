@@ -82,7 +82,7 @@ let SalesService = class SalesService {
                 item.priceAtPurchase = (0, money_util_1.roundMoney)(item.priceAtPurchase);
                 item.costAtPurchase = (0, money_util_1.roundMoney)(item.costAtPurchase || 0);
                 try {
-                    await this.productsService.incrementStock(item.productId, -item.quantity);
+                    await this.productsService.incrementStock(item.productId, -item.quantity, createSaleDto.eventId);
                     decrementedItems.push({ productId: item.productId, quantity: item.quantity });
                 }
                 catch (err) {
@@ -99,7 +99,7 @@ let SalesService = class SalesService {
             console.error("Falha ao salvar a venda, iniciando rollback de estoque:", saveError);
             for (const item of decrementedItems) {
                 try {
-                    await this.productsService.incrementStock(item.productId, item.quantity);
+                    await this.productsService.incrementStock(item.productId, item.quantity, createSaleDto.eventId);
                 }
                 catch (rollbackErr) {
                     console.error(`Falha no rollback de estoque para ${item.productId}:`, rollbackErr);
@@ -223,7 +223,7 @@ let SalesService = class SalesService {
                 : item.productId.toString();
             try {
                 console.log(`[SalesService] Incrementing stock atomically for product ${productIdStr} by +${item.quantity}`);
-                await this.productsService.incrementStock(productIdStr, item.quantity);
+                await this.productsService.incrementStock(productIdStr, item.quantity, sale.eventId ? sale.eventId.toString() : undefined);
             }
             catch (err) {
                 console.error(`Falha ao estornar estoque atomicamente do produto ${productIdStr}:`, err);

@@ -5,6 +5,7 @@ import { ProductsService } from "./products.service";
 import { Product, ProductSchema } from "../schemas/product.schema";
 import { Category, CategorySchema } from "../schemas/category.schema";
 import { StockEntry, StockEntrySchema } from "../schemas/stock-entry.schema";
+import { EventStock, EventStockSchema } from "../schemas/event-stock.schema";
 import { LogsModule } from "../logs/logs.module";
 import { ExpensesModule } from "../expenses/expenses.module";
 
@@ -14,6 +15,7 @@ import { ExpensesModule } from "../expenses/expenses.module";
       { name: Product.name, schema: ProductSchema },
       { name: Category.name, schema: CategorySchema },
       { name: StockEntry.name, schema: StockEntrySchema },
+      { name: EventStock.name, schema: EventStockSchema },
     ]),
     LogsModule,
     ExpensesModule,
