@@ -120,6 +120,23 @@ let SalesService = class SalesService {
         catch (err) {
             console.error("Falha ao registrar log de mudança de status:", err);
         }
+        if (status === "PAGO" && updated.customerId) {
+            try {
+                const cId = (updated.customerId._id || updated.customerId).toString();
+                const objectId = mongoose_2.Types.ObjectId.isValid(cId) ? new mongoose_2.Types.ObjectId(cId) : null;
+                const filter = objectId
+                    ? { $or: [{ customerId: objectId }, { customerId: cId }], status: "PENDENTE" }
+                    : { customerId: cId, status: "PENDENTE" };
+                const remaining = await this.saleModel.countDocuments(filter);
+                if (remaining === 0) {
+                    await this.saleModel.db.model("User").findByIdAndUpdate(cId, {
+                        $set: { lastChargedAt: null, chargeCount: 0 }
+                    }).exec();
+                }
+            }
+            catch (e) {
+            }
+        }
         return updated;
     }
     async payAllCustomerSales(customerId) {

@@ -115,6 +115,24 @@ export class SalesService {
       console.error("Falha ao registrar log de mudança de status:", err);
     }
 
+    if (status === "PAGO" && updated.customerId) {
+      try {
+        const cId = ((updated.customerId as any)._id || updated.customerId).toString();
+        const objectId = Types.ObjectId.isValid(cId) ? new Types.ObjectId(cId) : null;
+        const filter = objectId
+          ? { $or: [{ customerId: objectId }, { customerId: cId }], status: "PENDENTE" }
+          : { customerId: cId, status: "PENDENTE" };
+        const remaining = await this.saleModel.countDocuments(filter);
+        if (remaining === 0) {
+          await this.saleModel.db.model("User").findByIdAndUpdate(cId, {
+            $set: { lastChargedAt: null, chargeCount: 0 }
+          }).exec();
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
     return updated;
   }
 
