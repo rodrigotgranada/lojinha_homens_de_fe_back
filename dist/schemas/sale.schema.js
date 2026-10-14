@@ -25,7 +25,7 @@ __decorate([
     __metadata("design:type", Number)
 ], SaleRefund.prototype, "amount", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ required: true, type: String, enum: ["DINHEIRO", "PIX", "CREDITO", "OUTRO"], default: "DINHEIRO" }),
+    (0, mongoose_1.Prop)({ required: true, type: String, enum: ["DINHEIRO", "PIX", "OUTRO"], default: "DINHEIRO" }),
     __metadata("design:type", String)
 ], SaleRefund.prototype, "method", void 0);
 __decorate([

@@ -6,7 +6,7 @@ export class SaleRefund {
   @Prop({ required: true, type: Number })
   amount: number;
 
-  @Prop({ required: true, type: String, enum: ["DINHEIRO", "PIX", "CREDITO", "OUTRO"], default: "DINHEIRO" })
+  @Prop({ required: true, type: String, enum: ["DINHEIRO", "PIX", "OUTRO"], default: "DINHEIRO" })
   method: string;
 
   @Prop({ required: true, type: Date, default: Date.now })

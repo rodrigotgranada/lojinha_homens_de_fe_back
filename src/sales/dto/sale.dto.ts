@@ -93,7 +93,7 @@ export class ReturnSaleItemsDto {
 
   @IsOptional()
   @IsString()
-  refundMethod?: "DINHEIRO" | "PIX" | "CREDITO" | "OUTRO";
+  refundMethod?: "DINHEIRO" | "PIX" | "OUTRO";
 
   @IsOptional()
   @IsString()
