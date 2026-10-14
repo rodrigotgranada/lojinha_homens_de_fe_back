@@ -71,6 +71,24 @@ export declare const StockEntrySchema: import("mongoose").Schema<StockEntry, imp
     }, "id"> & import("mongoose").HydratedDocumentOverrides<{
         id: string;
     }>> | undefined;
+    productId?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId, StockEntry, Document<unknown, {}, StockEntry, {
+        id: string;
+    }, import("mongoose").DefaultSchemaOptions> & Omit<StockEntry & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    }, "id"> & import("mongoose").HydratedDocumentOverrides<{
+        id: string;
+    }>> | undefined;
+    quantity?: import("mongoose").SchemaDefinitionProperty<number, StockEntry, Document<unknown, {}, StockEntry, {
+        id: string;
+    }, import("mongoose").DefaultSchemaOptions> & Omit<StockEntry & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    }, "id"> & import("mongoose").HydratedDocumentOverrides<{
+        id: string;
+    }>> | undefined;
     totalCost?: import("mongoose").SchemaDefinitionProperty<number, StockEntry, Document<unknown, {}, StockEntry, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<StockEntry & Required<{
@@ -108,24 +126,6 @@ export declare const StockEntrySchema: import("mongoose").Schema<StockEntry, imp
         id: string;
     }>> | undefined;
     isDonation?: import("mongoose").SchemaDefinitionProperty<boolean, StockEntry, Document<unknown, {}, StockEntry, {
-        id: string;
-    }, import("mongoose").DefaultSchemaOptions> & Omit<StockEntry & Required<{
-        _id: Types.ObjectId;
-    }> & {
-        __v: number;
-    }, "id"> & import("mongoose").HydratedDocumentOverrides<{
-        id: string;
-    }>> | undefined;
-    productId?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId, StockEntry, Document<unknown, {}, StockEntry, {
-        id: string;
-    }, import("mongoose").DefaultSchemaOptions> & Omit<StockEntry & Required<{
-        _id: Types.ObjectId;
-    }> & {
-        __v: number;
-    }, "id"> & import("mongoose").HydratedDocumentOverrides<{
-        id: string;
-    }>> | undefined;
-    quantity?: import("mongoose").SchemaDefinitionProperty<number, StockEntry, Document<unknown, {}, StockEntry, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<StockEntry & Required<{
         _id: Types.ObjectId;

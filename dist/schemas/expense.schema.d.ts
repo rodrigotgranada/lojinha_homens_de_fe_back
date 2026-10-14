@@ -270,7 +270,7 @@ export declare const ExpenseSchema: import("mongoose").Schema<Expense, import("m
     }, "id"> & import("mongoose").HydratedDocumentOverrides<{
         id: string;
     }>> | undefined;
-    category?: import("mongoose").SchemaDefinitionProperty<string, Expense, Document<unknown, {}, Expense, {
+    items?: import("mongoose").SchemaDefinitionProperty<ExpenseItem[], Expense, Document<unknown, {}, Expense, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<Expense & Required<{
         _id: Types.ObjectId;
@@ -279,7 +279,7 @@ export declare const ExpenseSchema: import("mongoose").Schema<Expense, import("m
     }, "id"> & import("mongoose").HydratedDocumentOverrides<{
         id: string;
     }>> | undefined;
-    items?: import("mongoose").SchemaDefinitionProperty<ExpenseItem[], Expense, Document<unknown, {}, Expense, {
+    category?: import("mongoose").SchemaDefinitionProperty<string, Expense, Document<unknown, {}, Expense, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<Expense & Required<{
         _id: Types.ObjectId;

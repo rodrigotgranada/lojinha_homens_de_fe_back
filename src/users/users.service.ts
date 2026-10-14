@@ -8,13 +8,16 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import { User } from "../schemas/user.schema";
 import { EventParticipant } from "../schemas/event-participant.schema";
+import { Sale } from "../schemas/sale.schema";
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(EventParticipant.name)
-    private participantModel: Model<EventParticipant>
+    private participantModel: Model<EventParticipant>,
+    @InjectModel(Sale.name)
+    private saleModel: Model<Sale>
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -209,5 +212,106 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
     return updated;
+  }
+
+  async getUserFullHistory(userId: string): Promise<any> {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException("ID de usuário inválido");
+    }
+
+    const userObjId = new Types.ObjectId(userId);
+    const user = await this.userModel.findById(userObjId).exec();
+    if (!user) {
+      throw new NotFoundException("Usuário não encontrado");
+    }
+
+    // 1. Participações em eventos
+    const participations = await this.participantModel
+      .find({ userId: userObjId })
+      .populate("eventId")
+      .sort({ createdAt: -1 })
+      .exec();
+
+    // 2. Vendas/compras na Lojinha
+    const sales = await this.saleModel
+      .find({ customerId: userObjId })
+      .populate("eventId")
+      .populate("items.productId")
+      .sort({ createdAt: -1 })
+      .exec();
+
+    // Sumarização financeira
+    const totalSpent = sales
+      .filter((s) => s.status === "PAGO")
+      .reduce((sum, s) => sum + (s.totalPrice || 0) - (s.refundedAmount || 0), 0);
+
+    const totalPending = sales
+      .filter((s) => s.status === "PENDENTE")
+      .reduce((sum, s) => sum + (s.totalPrice || 0), 0);
+
+    // Agrupamento de compras por evento
+    const salesByEventMap = new Map<string, any>();
+    sales.forEach((s) => {
+      const ev = s.eventId as any;
+      const evId = ev ? (ev._id ? ev._id.toString() : ev.toString()) : "sem-evento";
+      const evName = ev?.name || "Outro Evento";
+
+      if (!salesByEventMap.has(evId)) {
+        salesByEventMap.set(evId, {
+          eventId: evId,
+          eventName: evName,
+          totalSpent: 0,
+          totalPending: 0,
+          salesCount: 0,
+          sales: [],
+        });
+      }
+
+      const group = salesByEventMap.get(evId);
+      group.salesCount += 1;
+      if (s.status === "PAGO") {
+        group.totalSpent += (s.totalPrice || 0) - (s.refundedAmount || 0);
+      } else if (s.status === "PENDENTE") {
+        group.totalPending += s.totalPrice || 0;
+      }
+      group.sales.push(s);
+    });
+
+    return {
+      user: {
+        ...(user.toObject ? user.toObject() : user),
+        id: user._id.toString(),
+      },
+      participations: participations.map((p) => ({
+        id: p._id.toString(),
+        eventId: (p.eventId as any)?._id?.toString() || p.eventId,
+        eventName: (p.eventId as any)?.name || "Retiro",
+        eventStatus: (p.eventId as any)?.status,
+        eventStartDate: (p.eventId as any)?.startDate,
+        eventEndDate: (p.eventId as any)?.endDate,
+        type: p.type,
+        status: p.status,
+        submittedAt: p.submittedAt,
+        confirmedAt: p.confirmedAt,
+        confirmedBy: p.confirmedBy,
+        healthRestrictions: p.healthRestrictions,
+        weight: p.weight,
+        height: p.height,
+        preferredRoles: p.preferredRoles,
+        willGiveTestimony: p.willGiveTestimony,
+        testimonyDetails: p.testimonyDetails,
+        availabilityDays: p.availabilityDays,
+        hasTent: p.hasTent,
+        preCampAvailability: p.preCampAvailability,
+        pastRoles: p.pastRoles,
+        estimatedGuestsCount: p.estimatedGuestsCount,
+      })),
+      financialSummary: {
+        totalSpent,
+        totalPending,
+        totalPurchases: sales.length,
+      },
+      salesByEvent: Array.from(salesByEventMap.values()),
+    };
   }
 }

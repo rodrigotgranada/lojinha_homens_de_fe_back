@@ -18,12 +18,15 @@ const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const user_schema_1 = require("../schemas/user.schema");
 const event_participant_schema_1 = require("../schemas/event-participant.schema");
+const sale_schema_1 = require("../schemas/sale.schema");
 let UsersService = class UsersService {
     userModel;
     participantModel;
-    constructor(userModel, participantModel) {
+    saleModel;
+    constructor(userModel, participantModel, saleModel) {
         this.userModel = userModel;
         this.participantModel = participantModel;
+        this.saleModel = saleModel;
     }
     async findAll() {
         return this.userModel.find().exec();
@@ -188,13 +191,103 @@ let UsersService = class UsersService {
         }
         return updated;
     }
+    async getUserFullHistory(userId) {
+        if (!mongoose_2.Types.ObjectId.isValid(userId)) {
+            throw new common_1.BadRequestException("ID de usuário inválido");
+        }
+        const userObjId = new mongoose_2.Types.ObjectId(userId);
+        const user = await this.userModel.findById(userObjId).exec();
+        if (!user) {
+            throw new common_1.NotFoundException("Usuário não encontrado");
+        }
+        const participations = await this.participantModel
+            .find({ userId: userObjId })
+            .populate("eventId")
+            .sort({ createdAt: -1 })
+            .exec();
+        const sales = await this.saleModel
+            .find({ customerId: userObjId })
+            .populate("eventId")
+            .populate("items.productId")
+            .sort({ createdAt: -1 })
+            .exec();
+        const totalSpent = sales
+            .filter((s) => s.status === "PAGO")
+            .reduce((sum, s) => sum + (s.totalPrice || 0) - (s.refundedAmount || 0), 0);
+        const totalPending = sales
+            .filter((s) => s.status === "PENDENTE")
+            .reduce((sum, s) => sum + (s.totalPrice || 0), 0);
+        const salesByEventMap = new Map();
+        sales.forEach((s) => {
+            const ev = s.eventId;
+            const evId = ev ? (ev._id ? ev._id.toString() : ev.toString()) : "sem-evento";
+            const evName = ev?.name || "Outro Evento";
+            if (!salesByEventMap.has(evId)) {
+                salesByEventMap.set(evId, {
+                    eventId: evId,
+                    eventName: evName,
+                    totalSpent: 0,
+                    totalPending: 0,
+                    salesCount: 0,
+                    sales: [],
+                });
+            }
+            const group = salesByEventMap.get(evId);
+            group.salesCount += 1;
+            if (s.status === "PAGO") {
+                group.totalSpent += (s.totalPrice || 0) - (s.refundedAmount || 0);
+            }
+            else if (s.status === "PENDENTE") {
+                group.totalPending += s.totalPrice || 0;
+            }
+            group.sales.push(s);
+        });
+        return {
+            user: {
+                ...(user.toObject ? user.toObject() : user),
+                id: user._id.toString(),
+            },
+            participations: participations.map((p) => ({
+                id: p._id.toString(),
+                eventId: p.eventId?._id?.toString() || p.eventId,
+                eventName: p.eventId?.name || "Retiro",
+                eventStatus: p.eventId?.status,
+                eventStartDate: p.eventId?.startDate,
+                eventEndDate: p.eventId?.endDate,
+                type: p.type,
+                status: p.status,
+                submittedAt: p.submittedAt,
+                confirmedAt: p.confirmedAt,
+                confirmedBy: p.confirmedBy,
+                healthRestrictions: p.healthRestrictions,
+                weight: p.weight,
+                height: p.height,
+                preferredRoles: p.preferredRoles,
+                willGiveTestimony: p.willGiveTestimony,
+                testimonyDetails: p.testimonyDetails,
+                availabilityDays: p.availabilityDays,
+                hasTent: p.hasTent,
+                preCampAvailability: p.preCampAvailability,
+                pastRoles: p.pastRoles,
+                estimatedGuestsCount: p.estimatedGuestsCount,
+            })),
+            financialSummary: {
+                totalSpent,
+                totalPending,
+                totalPurchases: sales.length,
+            },
+            salesByEvent: Array.from(salesByEventMap.values()),
+        };
+    }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, mongoose_1.InjectModel)(user_schema_1.User.name)),
     __param(1, (0, mongoose_1.InjectModel)(event_participant_schema_1.EventParticipant.name)),
+    __param(2, (0, mongoose_1.InjectModel)(sale_schema_1.Sale.name)),
     __metadata("design:paramtypes", [mongoose_2.Model,
+        mongoose_2.Model,
         mongoose_2.Model])
 ], UsersService);
 //# sourceMappingURL=users.service.js.map

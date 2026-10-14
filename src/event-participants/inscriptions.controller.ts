@@ -71,4 +71,12 @@ export class InscriptionsController {
   ) {
     return this.participantsService.cancelParticipant(id, operator || "Admin");
   }
+
+  @Patch(":id/type")
+  async updateParticipantType(
+    @Param("id") id: string,
+    @Body("type") type: "ACAMPANTE" | "TRABALHO"
+  ) {
+    return this.participantsService.updateParticipant(id, { type });
+  }
 }

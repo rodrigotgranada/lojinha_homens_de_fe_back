@@ -39,6 +39,15 @@ export declare const EventStockSchema: import("mongoose").Schema<EventStock, imp
     }, "id"> & import("mongoose").HydratedDocumentOverrides<{
         id: string;
     }>> | undefined;
+    productId?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId, EventStock, Document<unknown, {}, EventStock, {
+        id: string;
+    }, import("mongoose").DefaultSchemaOptions> & Omit<EventStock & Required<{
+        _id: Types.ObjectId;
+    }> & {
+        __v: number;
+    }, "id"> & import("mongoose").HydratedDocumentOverrides<{
+        id: string;
+    }>> | undefined;
     price?: import("mongoose").SchemaDefinitionProperty<number | undefined, EventStock, Document<unknown, {}, EventStock, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<EventStock & Required<{
@@ -112,15 +121,6 @@ export declare const EventStockSchema: import("mongoose").Schema<EventStock, imp
         id: string;
     }>> | undefined;
     isDonation?: import("mongoose").SchemaDefinitionProperty<boolean | undefined, EventStock, Document<unknown, {}, EventStock, {
-        id: string;
-    }, import("mongoose").DefaultSchemaOptions> & Omit<EventStock & Required<{
-        _id: Types.ObjectId;
-    }> & {
-        __v: number;
-    }, "id"> & import("mongoose").HydratedDocumentOverrides<{
-        id: string;
-    }>> | undefined;
-    productId?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId, EventStock, Document<unknown, {}, EventStock, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<EventStock & Required<{
         _id: Types.ObjectId;

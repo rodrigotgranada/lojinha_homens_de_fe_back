@@ -53,6 +53,9 @@ let InscriptionsController = class InscriptionsController {
     async cancelParticipant(id, operator) {
         return this.participantsService.cancelParticipant(id, operator || "Admin");
     }
+    async updateParticipantType(id, type) {
+        return this.participantsService.updateParticipant(id, { type });
+    }
 };
 exports.InscriptionsController = InscriptionsController;
 __decorate([
@@ -95,6 +98,14 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], InscriptionsController.prototype, "cancelParticipant", null);
+__decorate([
+    (0, common_1.Patch)(":id/type"),
+    __param(0, (0, common_1.Param)("id")),
+    __param(1, (0, common_1.Body)("type")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], InscriptionsController.prototype, "updateParticipantType", null);
 exports.InscriptionsController = InscriptionsController = __decorate([
     (0, common_1.Controller)("inscriptions"),
     __metadata("design:paramtypes", [event_participants_service_1.EventParticipantsService])

@@ -188,7 +188,7 @@ export declare const SaleSchema: import("mongoose").Schema<Sale, import("mongoos
     }, "id"> & import("mongoose").HydratedDocumentOverrides<{
         id: string;
     }>> | undefined;
-    items?: import("mongoose").SchemaDefinitionProperty<SaleItem[], Sale, Document<unknown, {}, Sale, {
+    customerId?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId, Sale, Document<unknown, {}, Sale, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<Sale & Required<{
         _id: Types.ObjectId;
@@ -197,7 +197,7 @@ export declare const SaleSchema: import("mongoose").Schema<Sale, import("mongoos
     }, "id"> & import("mongoose").HydratedDocumentOverrides<{
         id: string;
     }>> | undefined;
-    customerId?: import("mongoose").SchemaDefinitionProperty<Types.ObjectId, Sale, Document<unknown, {}, Sale, {
+    items?: import("mongoose").SchemaDefinitionProperty<SaleItem[], Sale, Document<unknown, {}, Sale, {
         id: string;
     }, import("mongoose").DefaultSchemaOptions> & Omit<Sale & Required<{
         _id: Types.ObjectId;

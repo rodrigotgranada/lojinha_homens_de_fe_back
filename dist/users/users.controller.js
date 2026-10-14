@@ -37,6 +37,9 @@ let UsersController = class UsersController {
     async linkToEvent(userId, body) {
         return this.usersService.linkToEvent(userId, body.eventId, body.type || "ACAMPANTE", body.operator || "PDV");
     }
+    async getUserHistory(id) {
+        return this.usersService.getUserFullHistory(id);
+    }
     async findOne(id) {
         return this.usersService.findOne(id);
     }
@@ -76,6 +79,13 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "linkToEvent", null);
+__decorate([
+    (0, common_1.Get)(":id/history"),
+    __param(0, (0, common_1.Param)("id")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "getUserHistory", null);
 __decorate([
     (0, common_1.Get)(":id"),
     __param(0, (0, common_1.Param)("id")),

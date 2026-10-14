@@ -54,6 +54,11 @@ export class UsersController {
     );
   }
 
+  @Get(":id/history")
+  async getUserHistory(@Param("id") id: string) {
+    return this.usersService.getUserFullHistory(id);
+  }
+
   @Get(":id")
   async findOne(@Param("id") id: string) {
     return this.usersService.findOne(id);

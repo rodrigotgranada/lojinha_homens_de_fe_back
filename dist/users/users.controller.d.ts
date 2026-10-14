@@ -10,6 +10,7 @@ export declare class UsersController {
         type?: "ACAMPANTE" | "TRABALHO";
         operator?: string;
     }): Promise<any>;
+    getUserHistory(id: string): Promise<any>;
     findOne(id: string): Promise<import("../schemas/user.schema").User>;
     create(createUserDto: CreateUserDto): Promise<import("../schemas/user.schema").User>;
     update(id: string, updateUserDto: UpdateUserDto): Promise<import("../schemas/user.schema").User>;

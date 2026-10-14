@@ -13,6 +13,7 @@ const users_controller_1 = require("./users.controller");
 const users_service_1 = require("./users.service");
 const user_schema_1 = require("../schemas/user.schema");
 const event_participant_schema_1 = require("../schemas/event-participant.schema");
+const sale_schema_1 = require("../schemas/sale.schema");
 let UsersModule = class UsersModule {
 };
 exports.UsersModule = UsersModule;
@@ -22,6 +23,7 @@ exports.UsersModule = UsersModule = __decorate([
             mongoose_1.MongooseModule.forFeature([
                 { name: user_schema_1.User.name, schema: user_schema_1.UserSchema },
                 { name: event_participant_schema_1.EventParticipant.name, schema: event_participant_schema_1.EventParticipantSchema },
+                { name: sale_schema_1.Sale.name, schema: sale_schema_1.SaleSchema },
             ]),
         ],
         controllers: [users_controller_1.UsersController],

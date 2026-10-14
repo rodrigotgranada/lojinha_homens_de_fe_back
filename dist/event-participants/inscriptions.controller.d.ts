@@ -22,4 +22,5 @@ export declare class InscriptionsController {
     findAllInscriptions(eventId?: string, status?: string, type?: string, search?: string): Promise<import("../schemas/event-participant.schema").EventParticipant[]>;
     confirmParticipant(id: string, operator?: string): Promise<import("../schemas/event-participant.schema").EventParticipant>;
     cancelParticipant(id: string, operator?: string): Promise<import("../schemas/event-participant.schema").EventParticipant>;
+    updateParticipantType(id: string, type: "ACAMPANTE" | "TRABALHO"): Promise<import("../schemas/event-participant.schema").EventParticipant>;
 }
