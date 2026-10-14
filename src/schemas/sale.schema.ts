@@ -2,7 +2,27 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Types } from "mongoose";
 
 @Schema()
-class SaleItem {
+export class SaleRefund {
+  @Prop({ required: true, type: Number })
+  amount: number;
+
+  @Prop({ required: true, type: String, enum: ["DINHEIRO", "PIX", "CREDITO", "OUTRO"], default: "DINHEIRO" })
+  method: string;
+
+  @Prop({ required: true, type: Date, default: Date.now })
+  date: Date;
+
+  @Prop({ type: String, default: "" })
+  reason: string;
+
+  @Prop({ type: String, default: "Admin" })
+  operator: string;
+}
+
+export const SaleRefundSchema = SchemaFactory.createForClass(SaleRefund);
+
+@Schema()
+export class SaleItem {
   @Prop({ required: true, type: Types.ObjectId, ref: "Product" })
   productId: Types.ObjectId;
 
@@ -14,9 +34,12 @@ class SaleItem {
 
   @Prop({ default: 0, type: Number })
   costAtPurchase: number;
+
+  @Prop({ default: 0, type: Number })
+  returnedQuantity: number;
 }
 
-const SaleItemSchema = SchemaFactory.createForClass(SaleItem);
+export const SaleItemSchema = SchemaFactory.createForClass(SaleItem);
 
 @Schema({ timestamps: true })
 export class Sale extends Document {
@@ -34,6 +57,12 @@ export class Sale extends Document {
 
   @Prop({ required: true, enum: ["PAGO", "PENDENTE", "CANCELADO"], default: "PAGO", index: true })
   status: string;
+
+  @Prop({ type: [SaleRefundSchema], default: [] })
+  refunds: SaleRefund[];
+
+  @Prop({ default: 0, type: Number })
+  refundedAmount: number;
 
   @Prop({ type: Boolean, default: false, index: true })
   synced: boolean;

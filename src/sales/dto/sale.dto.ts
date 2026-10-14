@@ -69,3 +69,37 @@ export class UpdateSaleStatusDto {
   @IsNotEmpty({ message: "O status é obrigatório" })
   status: "PAGO" | "PENDENTE" | "CANCELADO";
 }
+
+export class ReturnItemDto {
+  @IsString()
+  @IsNotEmpty({ message: "O ID do produto é obrigatório" })
+  productId: string;
+
+  @IsNumber({}, { message: "A quantidade a devolver deve ser numérica" })
+  @Min(1, { message: "A quantidade a devolver deve ser pelo menos 1" })
+  @Type(() => Number)
+  quantity: number;
+}
+
+export class ReturnSaleItemsDto {
+  @IsArray({ message: "A lista de itens a devolver deve ser um array" })
+  @ValidateNested({ each: true })
+  @Type(() => ReturnItemDto)
+  items: ReturnItemDto[];
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+
+  @IsOptional()
+  @IsString()
+  refundMethod?: "DINHEIRO" | "PIX" | "CREDITO" | "OUTRO";
+
+  @IsOptional()
+  @IsString()
+  operatorId?: string;
+
+  @IsOptional()
+  @IsString()
+  operatorName?: string;
+}

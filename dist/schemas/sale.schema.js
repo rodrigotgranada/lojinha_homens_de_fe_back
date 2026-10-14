@@ -9,15 +9,49 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SaleSchema = exports.Sale = void 0;
+exports.SaleSchema = exports.Sale = exports.SaleItemSchema = exports.SaleItem = exports.SaleRefundSchema = exports.SaleRefund = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
+let SaleRefund = class SaleRefund {
+    amount;
+    method;
+    date;
+    reason;
+    operator;
+};
+exports.SaleRefund = SaleRefund;
+__decorate([
+    (0, mongoose_1.Prop)({ required: true, type: Number }),
+    __metadata("design:type", Number)
+], SaleRefund.prototype, "amount", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ required: true, type: String, enum: ["DINHEIRO", "PIX", "CREDITO", "OUTRO"], default: "DINHEIRO" }),
+    __metadata("design:type", String)
+], SaleRefund.prototype, "method", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ required: true, type: Date, default: Date.now }),
+    __metadata("design:type", Date)
+], SaleRefund.prototype, "date", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: String, default: "" }),
+    __metadata("design:type", String)
+], SaleRefund.prototype, "reason", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: String, default: "Admin" }),
+    __metadata("design:type", String)
+], SaleRefund.prototype, "operator", void 0);
+exports.SaleRefund = SaleRefund = __decorate([
+    (0, mongoose_1.Schema)()
+], SaleRefund);
+exports.SaleRefundSchema = mongoose_1.SchemaFactory.createForClass(SaleRefund);
 let SaleItem = class SaleItem {
     productId;
     quantity;
     priceAtPurchase;
     costAtPurchase;
+    returnedQuantity;
 };
+exports.SaleItem = SaleItem;
 __decorate([
     (0, mongoose_1.Prop)({ required: true, type: mongoose_2.Types.ObjectId, ref: "Product" }),
     __metadata("design:type", mongoose_2.Types.ObjectId)
@@ -34,16 +68,22 @@ __decorate([
     (0, mongoose_1.Prop)({ default: 0, type: Number }),
     __metadata("design:type", Number)
 ], SaleItem.prototype, "costAtPurchase", void 0);
-SaleItem = __decorate([
+__decorate([
+    (0, mongoose_1.Prop)({ default: 0, type: Number }),
+    __metadata("design:type", Number)
+], SaleItem.prototype, "returnedQuantity", void 0);
+exports.SaleItem = SaleItem = __decorate([
     (0, mongoose_1.Schema)()
 ], SaleItem);
-const SaleItemSchema = mongoose_1.SchemaFactory.createForClass(SaleItem);
+exports.SaleItemSchema = mongoose_1.SchemaFactory.createForClass(SaleItem);
 let Sale = class Sale extends mongoose_2.Document {
     customerId;
     eventId;
     items;
     totalPrice;
     status;
+    refunds;
+    refundedAmount;
     synced;
     synchronizedAt;
 };
@@ -57,7 +97,7 @@ __decorate([
     __metadata("design:type", mongoose_2.Types.ObjectId)
 ], Sale.prototype, "eventId", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ type: [SaleItemSchema], required: true }),
+    (0, mongoose_1.Prop)({ type: [exports.SaleItemSchema], required: true }),
     __metadata("design:type", Array)
 ], Sale.prototype, "items", void 0);
 __decorate([
@@ -68,6 +108,14 @@ __decorate([
     (0, mongoose_1.Prop)({ required: true, enum: ["PAGO", "PENDENTE", "CANCELADO"], default: "PAGO", index: true }),
     __metadata("design:type", String)
 ], Sale.prototype, "status", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: [exports.SaleRefundSchema], default: [] }),
+    __metadata("design:type", Array)
+], Sale.prototype, "refunds", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ default: 0, type: Number }),
+    __metadata("design:type", Number)
+], Sale.prototype, "refundedAmount", void 0);
 __decorate([
     (0, mongoose_1.Prop)({ type: Boolean, default: false, index: true }),
     __metadata("design:type", Boolean)

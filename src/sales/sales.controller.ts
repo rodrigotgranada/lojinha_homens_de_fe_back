@@ -1,6 +1,11 @@
 import { Controller, Get, Post, Patch, Body, Param, Query } from "@nestjs/common";
 import { SalesService } from "./sales.service";
-import { CreateSaleDto, CancelSaleDto, UpdateSaleStatusDto } from "./dto/sale.dto";
+import {
+  CreateSaleDto,
+  CancelSaleDto,
+  UpdateSaleStatusDto,
+  ReturnSaleItemsDto,
+} from "./dto/sale.dto";
 
 @Controller("sales")
 export class SalesController {
@@ -35,5 +40,13 @@ export class SalesController {
   @Post(":id/cancel")
   async cancelSale(@Param("id") id: string, @Body() body: CancelSaleDto) {
     return this.salesService.cancelSale(id, body.operatorId || "system");
+  }
+
+  @Post(":id/return-items")
+  async returnItems(
+    @Param("id") id: string,
+    @Body() returnSaleItemsDto: ReturnSaleItemsDto
+  ) {
+    return this.salesService.returnItems(id, returnSaleItemsDto);
   }
 }

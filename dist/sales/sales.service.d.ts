@@ -2,7 +2,7 @@ import { Model } from "mongoose";
 import { Sale } from "../schemas/sale.schema";
 import { ProductsService } from "../products/products.service";
 import { LogsService } from "../logs/logs.service";
-import { CreateSaleDto } from "./dto/sale.dto";
+import { CreateSaleDto, ReturnSaleItemsDto } from "./dto/sale.dto";
 export declare class SalesService {
     private saleModel;
     private readonly productsService;
@@ -17,4 +17,5 @@ export declare class SalesService {
         totalPaid: number;
     }>;
     cancelSale(id: string, operatorId: string): Promise<Sale>;
+    returnItems(saleId: string, dto: ReturnSaleItemsDto): Promise<Sale>;
 }

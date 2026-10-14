@@ -5,7 +5,7 @@ import { Sale } from "../schemas/sale.schema";
 import { ProductsService } from "../products/products.service";
 import { LogsService } from "../logs/logs.service";
 import { roundMoney } from "../common/utils/money.util";
-import { CreateSaleDto } from "./dto/sale.dto";
+import { CreateSaleDto, ReturnSaleItemsDto } from "./dto/sale.dto";
 
 @Injectable()
 export class SalesService {
@@ -272,6 +272,144 @@ export class SalesService {
       });
     } catch (err) {
       console.error("Falha ao registrar log de cancelamento:", err);
+    }
+
+    return savedSale;
+  }
+
+  async returnItems(saleId: string, dto: ReturnSaleItemsDto): Promise<Sale> {
+    if (!Types.ObjectId.isValid(saleId)) {
+      throw new BadRequestException("ID de venda inválido");
+    }
+
+    const sale = await this.saleModel
+      .findById(saleId)
+      .populate("customerId")
+      .populate("items.productId")
+      .exec();
+
+    if (!sale) {
+      throw new NotFoundException(`Venda com ID ${saleId} não encontrada`);
+    }
+
+    if (sale.status === "CANCELADO") {
+      throw new BadRequestException("Esta venda já foi cancelada anteriormente");
+    }
+
+    if (!dto.items || dto.items.length === 0) {
+      throw new BadRequestException("Nenhum item informado para devolução");
+    }
+
+    let totalRefundAmount = 0;
+    const returnedDescriptions: string[] = [];
+
+    // Validar e processar cada item a ser devolvido
+    for (const returnItem of dto.items) {
+      const saleItem = sale.items.find((i) => {
+        const prodId = (i.productId as any)?._id
+          ? (i.productId as any)._id.toString()
+          : i.productId.toString();
+        return prodId === returnItem.productId;
+      });
+
+      if (!saleItem) {
+        throw new BadRequestException(
+          `O produto ${returnItem.productId} não pertence a esta venda`
+        );
+      }
+
+      const alreadyReturned = saleItem.returnedQuantity || 0;
+      const availableToReturn = saleItem.quantity - alreadyReturned;
+
+      if (returnItem.quantity > availableToReturn) {
+        const prodName = (saleItem.productId as any)?.name || "Produto";
+        throw new BadRequestException(
+          `Tentativa de devolver ${returnItem.quantity} un de ${prodName}, mas apenas ${availableToReturn} un estão disponíveis para devolução`
+        );
+      }
+
+      // 1. Repor estoque no evento ativo ($inc positivo)
+      const productIdStr = (saleItem.productId as any)?._id
+        ? (saleItem.productId as any)._id.toString()
+        : saleItem.productId.toString();
+
+      try {
+        await this.productsService.incrementStock(
+          productIdStr,
+          returnItem.quantity,
+          sale.eventId ? sale.eventId.toString() : undefined
+        );
+      } catch (err) {
+        console.error(`Falha ao repor estoque do produto ${productIdStr}:`, err);
+      }
+
+      // 2. Atualizar quantidade devolvida no item
+      saleItem.returnedQuantity = alreadyReturned + returnItem.quantity;
+
+      const itemRefundValue = roundMoney(returnItem.quantity * saleItem.priceAtPurchase);
+      totalRefundAmount = roundMoney(totalRefundAmount + itemRefundValue);
+
+      const prodName = (saleItem.productId as any)?.name || "Produto";
+      returnedDescriptions.push(`${returnItem.quantity}x ${prodName} (R$ ${itemRefundValue.toFixed(2)})`);
+    }
+
+    // 3. Atualizar totalPrice da venda
+    sale.totalPrice = Math.max(0, roundMoney(sale.totalPrice - totalRefundAmount));
+
+    const operator = dto.operatorName || "Admin";
+
+    // 4. Se a venda já estava PAGA, registrar no histórico de estornos/reembolsos
+    if (sale.status === "PAGO") {
+      sale.refundedAmount = roundMoney((sale.refundedAmount || 0) + totalRefundAmount);
+      if (!sale.refunds) sale.refunds = [];
+      sale.refunds.push({
+        amount: totalRefundAmount,
+        method: dto.refundMethod || "DINHEIRO",
+        date: new Date(),
+        reason: (dto.reason || "").trim(),
+        operator,
+      } as any);
+    }
+
+    // 5. Se TODOS os itens da venda foram 100% devolvidos, marcar status como CANCELADO
+    const allItemsFullyReturned = sale.items.every(
+      (i) => (i.returnedQuantity || 0) >= i.quantity
+    );
+    if (allItemsFullyReturned) {
+      sale.status = "CANCELADO";
+    }
+
+    const savedSale = await sale.save();
+
+    // 6. Auditoria (Log)
+    const customerName =
+      (sale.customerId as any)?.firstName
+        ? `${(sale.customerId as any).firstName} ${(sale.customerId as any).lastName || ""}`.trim()
+        : "Cliente";
+
+    try {
+      await this.logsService.create({
+        userId: dto.operatorId || "system",
+        userName: operator,
+        action: "sale_return_items",
+        description: `${operator} registrou a devolução de itens [ ${returnedDescriptions.join(
+          ", "
+        )} ] da venda #${saleId} do cliente ${customerName}. Valor estornado/abatido: R$ ${totalRefundAmount.toFixed(
+          2
+        )}. Status atual da venda: ${sale.status}.`,
+        metadata: {
+          saleId: sale._id.toString(),
+          totalRefundAmount,
+          returnedItems: dto.items,
+          refundMethod: dto.refundMethod,
+          reason: dto.reason,
+          newTotalPrice: sale.totalPrice,
+          newStatus: sale.status,
+          eventId: sale.eventId,
+        },
+      });
+    } catch (err) {
+      console.error("Falha ao registrar log de devolução parcial:", err);
     }
 
     return savedSale;

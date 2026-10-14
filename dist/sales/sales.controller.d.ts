@@ -1,5 +1,5 @@
 import { SalesService } from "./sales.service";
-import { CreateSaleDto, CancelSaleDto, UpdateSaleStatusDto } from "./dto/sale.dto";
+import { CreateSaleDto, CancelSaleDto, UpdateSaleStatusDto, ReturnSaleItemsDto } from "./dto/sale.dto";
 export declare class SalesController {
     private readonly salesService;
     constructor(salesService: SalesService);
@@ -11,4 +11,5 @@ export declare class SalesController {
     }>;
     updateStatus(id: string, body: UpdateSaleStatusDto): Promise<import("../schemas/sale.schema").Sale>;
     cancelSale(id: string, body: CancelSaleDto): Promise<import("../schemas/sale.schema").Sale>;
+    returnItems(id: string, returnSaleItemsDto: ReturnSaleItemsDto): Promise<import("../schemas/sale.schema").Sale>;
 }

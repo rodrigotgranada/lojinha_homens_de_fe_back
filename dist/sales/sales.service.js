@@ -255,6 +255,102 @@ let SalesService = class SalesService {
         }
         return savedSale;
     }
+    async returnItems(saleId, dto) {
+        if (!mongoose_2.Types.ObjectId.isValid(saleId)) {
+            throw new common_1.BadRequestException("ID de venda inválido");
+        }
+        const sale = await this.saleModel
+            .findById(saleId)
+            .populate("customerId")
+            .populate("items.productId")
+            .exec();
+        if (!sale) {
+            throw new common_1.NotFoundException(`Venda com ID ${saleId} não encontrada`);
+        }
+        if (sale.status === "CANCELADO") {
+            throw new common_1.BadRequestException("Esta venda já foi cancelada anteriormente");
+        }
+        if (!dto.items || dto.items.length === 0) {
+            throw new common_1.BadRequestException("Nenhum item informado para devolução");
+        }
+        let totalRefundAmount = 0;
+        const returnedDescriptions = [];
+        for (const returnItem of dto.items) {
+            const saleItem = sale.items.find((i) => {
+                const prodId = i.productId?._id
+                    ? i.productId._id.toString()
+                    : i.productId.toString();
+                return prodId === returnItem.productId;
+            });
+            if (!saleItem) {
+                throw new common_1.BadRequestException(`O produto ${returnItem.productId} não pertence a esta venda`);
+            }
+            const alreadyReturned = saleItem.returnedQuantity || 0;
+            const availableToReturn = saleItem.quantity - alreadyReturned;
+            if (returnItem.quantity > availableToReturn) {
+                const prodName = saleItem.productId?.name || "Produto";
+                throw new common_1.BadRequestException(`Tentativa de devolver ${returnItem.quantity} un de ${prodName}, mas apenas ${availableToReturn} un estão disponíveis para devolução`);
+            }
+            const productIdStr = saleItem.productId?._id
+                ? saleItem.productId._id.toString()
+                : saleItem.productId.toString();
+            try {
+                await this.productsService.incrementStock(productIdStr, returnItem.quantity, sale.eventId ? sale.eventId.toString() : undefined);
+            }
+            catch (err) {
+                console.error(`Falha ao repor estoque do produto ${productIdStr}:`, err);
+            }
+            saleItem.returnedQuantity = alreadyReturned + returnItem.quantity;
+            const itemRefundValue = (0, money_util_1.roundMoney)(returnItem.quantity * saleItem.priceAtPurchase);
+            totalRefundAmount = (0, money_util_1.roundMoney)(totalRefundAmount + itemRefundValue);
+            const prodName = saleItem.productId?.name || "Produto";
+            returnedDescriptions.push(`${returnItem.quantity}x ${prodName} (R$ ${itemRefundValue.toFixed(2)})`);
+        }
+        sale.totalPrice = Math.max(0, (0, money_util_1.roundMoney)(sale.totalPrice - totalRefundAmount));
+        const operator = dto.operatorName || "Admin";
+        if (sale.status === "PAGO") {
+            sale.refundedAmount = (0, money_util_1.roundMoney)((sale.refundedAmount || 0) + totalRefundAmount);
+            if (!sale.refunds)
+                sale.refunds = [];
+            sale.refunds.push({
+                amount: totalRefundAmount,
+                method: dto.refundMethod || "DINHEIRO",
+                date: new Date(),
+                reason: (dto.reason || "").trim(),
+                operator,
+            });
+        }
+        const allItemsFullyReturned = sale.items.every((i) => (i.returnedQuantity || 0) >= i.quantity);
+        if (allItemsFullyReturned) {
+            sale.status = "CANCELADO";
+        }
+        const savedSale = await sale.save();
+        const customerName = sale.customerId?.firstName
+            ? `${sale.customerId.firstName} ${sale.customerId.lastName || ""}`.trim()
+            : "Cliente";
+        try {
+            await this.logsService.create({
+                userId: dto.operatorId || "system",
+                userName: operator,
+                action: "sale_return_items",
+                description: `${operator} registrou a devolução de itens [ ${returnedDescriptions.join(", ")} ] da venda #${saleId} do cliente ${customerName}. Valor estornado/abatido: R$ ${totalRefundAmount.toFixed(2)}. Status atual da venda: ${sale.status}.`,
+                metadata: {
+                    saleId: sale._id.toString(),
+                    totalRefundAmount,
+                    returnedItems: dto.items,
+                    refundMethod: dto.refundMethod,
+                    reason: dto.reason,
+                    newTotalPrice: sale.totalPrice,
+                    newStatus: sale.status,
+                    eventId: sale.eventId,
+                },
+            });
+        }
+        catch (err) {
+            console.error("Falha ao registrar log de devolução parcial:", err);
+        }
+        return savedSale;
+    }
 };
 exports.SalesService = SalesService;
 exports.SalesService = SalesService = __decorate([

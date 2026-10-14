@@ -39,6 +39,9 @@ let SalesController = class SalesController {
     async cancelSale(id, body) {
         return this.salesService.cancelSale(id, body.operatorId || "system");
     }
+    async returnItems(id, returnSaleItemsDto) {
+        return this.salesService.returnItems(id, returnSaleItemsDto);
+    }
 };
 exports.SalesController = SalesController;
 __decorate([
@@ -79,6 +82,14 @@ __decorate([
     __metadata("design:paramtypes", [String, sale_dto_1.CancelSaleDto]),
     __metadata("design:returntype", Promise)
 ], SalesController.prototype, "cancelSale", null);
+__decorate([
+    (0, common_1.Post)(":id/return-items"),
+    __param(0, (0, common_1.Param)("id")),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, sale_dto_1.ReturnSaleItemsDto]),
+    __metadata("design:returntype", Promise)
+], SalesController.prototype, "returnItems", null);
 exports.SalesController = SalesController = __decorate([
     (0, common_1.Controller)("sales"),
     __metadata("design:paramtypes", [sales_service_1.SalesService])
