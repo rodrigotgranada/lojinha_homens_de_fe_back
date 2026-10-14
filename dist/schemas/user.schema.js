@@ -19,6 +19,9 @@ let User = class User extends mongoose_2.Document {
     firstName;
     lastName;
     phone;
+    city;
+    birthDate;
+    parish;
     role;
     createdBy;
     active;
@@ -52,6 +55,18 @@ __decorate([
     (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", String)
 ], User.prototype, "phone", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], User.prototype, "city", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: Date }),
+    __metadata("design:type", Date)
+], User.prototype, "birthDate", void 0);
+__decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], User.prototype, "parish", void 0);
 __decorate([
     (0, mongoose_1.Prop)({ required: true, enum: ["USER", "ADMIN"], default: "USER" }),
     __metadata("design:type", String)

@@ -15,9 +15,60 @@ export class EventParticipant extends Document {
   @Prop({ required: true, enum: ["ACAMPANTE", "TRABALHO"], default: "ACAMPANTE" })
   type: ParticipantType;
 
-  @Prop({ required: true, enum: ["CONFIRMADO", "PENDENTE", "CANCELADO"], default: "CONFIRMADO" })
+  @Prop({ required: true, enum: ["CONFIRMADO", "PENDENTE", "CANCELADO"], default: "PENDENTE" })
   status: ParticipantStatus;
 
+  @Prop({ type: Date, default: Date.now })
+  submittedAt?: Date;
+
+  // --- Campos específicos de ACAMPANTE ---
+  @Prop()
+  weight?: number;
+
+  @Prop()
+  height?: number;
+
+  @Prop()
+  referralSource?: string;
+
+  @Prop()
+  healthRestrictions?: string;
+
+  @Prop({ default: false })
+  lgpdAuthorized?: boolean;
+
+  // --- Campos específicos de EQUIPE DE TRABALHO ---
+  @Prop({ type: [String], default: [] })
+  preferredRoles?: string[];
+
+  @Prop({ default: false })
+  willGiveTestimony?: boolean;
+
+  @Prop()
+  testimonyDetails?: string;
+
+  @Prop()
+  testimonyReason?: string;
+
+  @Prop()
+  previousHfEdition?: string;
+
+  @Prop({ type: [String], default: [] })
+  availabilityDays?: string[];
+
+  @Prop({ default: false })
+  hasTent?: boolean;
+
+  @Prop({ default: false })
+  preCampAvailability?: boolean;
+
+  @Prop()
+  pastRoles?: string;
+
+  @Prop({ default: 0 })
+  estimatedGuestsCount?: number;
+
+  // --- Gestão e Auditoria Interna ---
   @Prop()
   notes?: string;
 

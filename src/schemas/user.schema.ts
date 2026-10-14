@@ -21,6 +21,15 @@ export class User extends Document {
   @Prop({ required: true })
   phone: string;
 
+  @Prop()
+  city?: string;
+
+  @Prop({ type: Date })
+  birthDate?: Date;
+
+  @Prop()
+  parish?: string;
+
   @Prop({ required: true, enum: ["USER", "ADMIN"], default: "USER" })
   role: string;
 
