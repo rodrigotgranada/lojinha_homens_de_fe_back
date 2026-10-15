@@ -1,5 +1,6 @@
 export declare class PublicInscriptionDto {
     eventId?: string;
+    eventSlug?: string;
     cpf: string;
     firstName: string;
     lastName: string;

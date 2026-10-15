@@ -57,11 +57,7 @@ let ProductsService = ProductsService_1 = class ProductsService {
     async findAll(includeInactive = false, eventId) {
         const filter = includeInactive ? {} : { active: { $ne: false } };
         if (eventId && mongoose_2.Types.ObjectId.isValid(eventId)) {
-            filter.$or = [
-                { eventId: new mongoose_2.Types.ObjectId(eventId) },
-                { eventId: null },
-                { eventId: { $exists: false } },
-            ];
+            filter.eventId = new mongoose_2.Types.ObjectId(eventId);
         }
         const products = await this.productModel.find(filter).populate("categoryRef").exec();
         if (eventId && mongoose_2.Types.ObjectId.isValid(eventId)) {

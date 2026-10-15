@@ -1,9 +1,25 @@
-import { IsString, IsOptional, IsBoolean, IsDateString, IsEnum } from "class-validator";
+import { IsString, IsOptional, IsBoolean, IsDateString, IsEnum, IsArray } from "class-validator";
 import type { EventStatus } from "../../schemas/event.schema";
 
 export class CreateEventDto {
   @IsString()
   name: string;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  ownerId?: string;
+
+  @IsOptional()
+  @IsArray()
+  adminIds?: string[];
 
   @IsOptional()
   @IsBoolean()
@@ -30,6 +46,22 @@ export class UpdateEventDto {
   @IsOptional()
   @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  ownerId?: string;
+
+  @IsOptional()
+  @IsArray()
+  adminIds?: string[];
 
   @IsOptional()
   @IsBoolean()

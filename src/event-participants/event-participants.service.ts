@@ -158,7 +158,12 @@ export class EventParticipantsService {
   }
 
   async getActiveEvent(): Promise<Event | null> {
-    return this.eventModel.findOne({ isActive: true }).exec();
+    return this.eventModel.findOne({ isActive: true }).sort({ createdAt: -1 }).exec();
+  }
+
+  async getEventBySlug(slug: string): Promise<Event | null> {
+    const clean = slug.toLowerCase().trim();
+    return this.eventModel.findOne({ slug: clean }).exec();
   }
 
   async submitPublicInscription(dto: PublicInscriptionDto): Promise<{
@@ -168,16 +173,19 @@ export class EventParticipantsService {
     user: any;
     event: any;
   }> {
-    // 1. Resolve event
+    // 1. Resolve event (by id, by slug, or fallback to active event)
     let targetEvent: Event | null = null;
     if (dto.eventId && Types.ObjectId.isValid(dto.eventId)) {
       targetEvent = await this.eventModel.findById(dto.eventId).exec();
     }
-    if (!targetEvent) {
-      targetEvent = await this.eventModel.findOne({ isActive: true }).exec();
+    if (!targetEvent && dto.eventSlug) {
+      targetEvent = await this.getEventBySlug(dto.eventSlug);
     }
     if (!targetEvent) {
-      throw new BadRequestException("Nenhum evento ativo encontrado para receber inscrições.");
+      targetEvent = await this.eventModel.findOne({ isActive: true }).sort({ createdAt: -1 }).exec();
+    }
+    if (!targetEvent) {
+      throw new BadRequestException("Nenhum evento ativo ou compatível encontrado para receber inscrições.");
     }
 
     // 2. Clean CPF

@@ -18,6 +18,7 @@ export declare class EventParticipantsService {
         message: string;
     }>;
     getActiveEvent(): Promise<Event | null>;
+    getEventBySlug(slug: string): Promise<Event | null>;
     submitPublicInscription(dto: PublicInscriptionDto): Promise<{
         success: boolean;
         message: string;

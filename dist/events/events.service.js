@@ -13,24 +13,69 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EventsService = void 0;
+exports.slugifyEventName = slugifyEventName;
 const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const event_schema_1 = require("../schemas/event.schema");
+function slugifyEventName(name) {
+    return name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+}
 let EventsService = class EventsService {
     eventModel;
     constructor(eventModel) {
         this.eventModel = eventModel;
     }
+    async generateUniqueSlug(baseName, existingId) {
+        const baseSlug = slugifyEventName(baseName);
+        let candidate = baseSlug || "retiro";
+        let counter = 1;
+        while (true) {
+            const existing = await this.eventModel.findOne({
+                slug: candidate,
+                ...(existingId ? { _id: { $ne: existingId } } : {}),
+            }).exec();
+            if (!existing) {
+                return candidate;
+            }
+            counter++;
+            candidate = `${baseSlug}-${counter}`;
+        }
+    }
     async findAll() {
-        return this.eventModel.find().sort({ createdAt: -1 }).exec();
+        return this.eventModel.find().sort({ isActive: -1, createdAt: -1 }).exec();
     }
     async findActive() {
-        return this.eventModel.findOne({ isActive: true }).exec();
+        return this.eventModel.findOne({ isActive: true }).sort({ createdAt: -1 }).exec();
+    }
+    async findActiveAll() {
+        return this.eventModel.find({ isActive: true }).sort({ createdAt: -1 }).exec();
+    }
+    async findBySlug(slug) {
+        const clean = slug.toLowerCase().trim();
+        const event = await this.eventModel.findOne({ slug: clean }).exec();
+        if (!event) {
+            throw new common_1.NotFoundException(`Retiro não encontrado para o endereço "${clean}"`);
+        }
+        return event;
     }
     async create(createEventDto) {
-        createEventDto.isActive = false;
         createEventDto.status = createEventDto.status ?? "PROGRAMADO";
+        if (createEventDto.isActive === undefined) {
+            createEventDto.isActive = createEventDto.status === "ATIVO";
+        }
+        if (createEventDto.slug && createEventDto.slug.trim()) {
+            createEventDto.slug = slugifyEventName(createEventDto.slug);
+        }
+        else {
+            createEventDto.slug = await this.generateUniqueSlug(createEventDto.name);
+        }
         const createdEvent = new this.eventModel(createEventDto);
         return createdEvent.save();
     }
@@ -39,18 +84,15 @@ let EventsService = class EventsService {
         if (!current) {
             throw new common_1.NotFoundException(`Event with ID ${id} not found`);
         }
+        if (updateEventDto.slug && updateEventDto.slug.trim()) {
+            updateEventDto.slug = await this.generateUniqueSlug(updateEventDto.slug, id);
+        }
+        else if (updateEventDto.name && updateEventDto.name !== current.name && !current.slug) {
+            updateEventDto.slug = await this.generateUniqueSlug(updateEventDto.name, id);
+        }
         const requestedStatus = updateEventDto.status;
         const requestedActive = updateEventDto.isActive;
         if (requestedActive === true || requestedStatus === "ATIVO") {
-            const alreadyActive = await this.eventModel
-                .findOne({ isActive: true, _id: { $ne: id } })
-                .exec();
-            if (alreadyActive) {
-                throw new common_1.BadRequestException(`O evento "${alreadyActive.name}" já está ativo. Encerre-o antes de iniciar outro.`);
-            }
-            await this.eventModel
-                .updateMany({ _id: { $ne: id } }, { isActive: false })
-                .exec();
             updateEventDto.isActive = true;
             updateEventDto.status = "ATIVO";
         }
@@ -59,9 +101,6 @@ let EventsService = class EventsService {
             updateEventDto.status = "ENCERRADO";
         }
         if (requestedStatus === "CANCELADO") {
-            if (current.isActive) {
-                throw new common_1.BadRequestException("Não é possível cancelar um evento que está ativo. Encerre-o primeiro.");
-            }
             updateEventDto.isActive = false;
             updateEventDto.status = "CANCELADO";
         }

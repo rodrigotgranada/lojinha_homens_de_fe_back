@@ -40,11 +40,7 @@ export class ProductsService {
   async findAll(includeInactive = false, eventId?: string): Promise<any[]> {
     const filter: any = includeInactive ? {} : { active: { $ne: false } };
     if (eventId && Types.ObjectId.isValid(eventId)) {
-      filter.$or = [
-        { eventId: new Types.ObjectId(eventId) },
-        { eventId: null },
-        { eventId: { $exists: false } },
-      ];
+      filter.eventId = new Types.ObjectId(eventId);
     }
     const products = await this.productModel.find(filter).populate("categoryRef").exec();
 

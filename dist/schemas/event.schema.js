@@ -15,6 +15,10 @@ const mongoose_2 = require("mongoose");
 let Event = class Event extends mongoose_2.Document {
     name;
     isActive;
+    slug;
+    city;
+    ownerId;
+    adminIds;
     startDate;
     endDate;
     location;
@@ -29,6 +33,22 @@ __decorate([
     (0, mongoose_1.Prop)({ default: false, index: true }),
     __metadata("design:type", Boolean)
 ], Event.prototype, "isActive", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: String, unique: true, sparse: true, index: true }),
+    __metadata("design:type", String)
+], Event.prototype, "slug", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ default: "" }),
+    __metadata("design:type", String)
+], Event.prototype, "city", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: mongoose_2.Types.ObjectId, ref: "User", required: false }),
+    __metadata("design:type", mongoose_2.Types.ObjectId)
+], Event.prototype, "ownerId", void 0);
+__decorate([
+    (0, mongoose_1.Prop)({ type: [{ type: mongoose_2.Types.ObjectId, ref: "User" }], default: [] }),
+    __metadata("design:type", Array)
+], Event.prototype, "adminIds", void 0);
 __decorate([
     (0, mongoose_1.Prop)({ type: Date }),
     __metadata("design:type", Date)

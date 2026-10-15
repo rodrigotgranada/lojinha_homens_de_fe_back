@@ -14,6 +14,7 @@ const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
 class PublicInscriptionDto {
     eventId;
+    eventSlug;
     cpf;
     firstName;
     lastName;
@@ -45,6 +46,11 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], PublicInscriptionDto.prototype, "eventId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PublicInscriptionDto.prototype, "eventSlug", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)({ message: "CPF é obrigatório" }),
     (0, class_validator_1.IsString)(),

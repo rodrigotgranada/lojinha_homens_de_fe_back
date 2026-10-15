@@ -134,18 +134,25 @@ let EventParticipantsService = class EventParticipantsService {
         return { success: true, message: "Participante removido do evento com sucesso" };
     }
     async getActiveEvent() {
-        return this.eventModel.findOne({ isActive: true }).exec();
+        return this.eventModel.findOne({ isActive: true }).sort({ createdAt: -1 }).exec();
+    }
+    async getEventBySlug(slug) {
+        const clean = slug.toLowerCase().trim();
+        return this.eventModel.findOne({ slug: clean }).exec();
     }
     async submitPublicInscription(dto) {
         let targetEvent = null;
         if (dto.eventId && mongoose_2.Types.ObjectId.isValid(dto.eventId)) {
             targetEvent = await this.eventModel.findById(dto.eventId).exec();
         }
-        if (!targetEvent) {
-            targetEvent = await this.eventModel.findOne({ isActive: true }).exec();
+        if (!targetEvent && dto.eventSlug) {
+            targetEvent = await this.getEventBySlug(dto.eventSlug);
         }
         if (!targetEvent) {
-            throw new common_1.BadRequestException("Nenhum evento ativo encontrado para receber inscrições.");
+            targetEvent = await this.eventModel.findOne({ isActive: true }).sort({ createdAt: -1 }).exec();
+        }
+        if (!targetEvent) {
+            throw new common_1.BadRequestException("Nenhum evento ativo ou compatível encontrado para receber inscrições.");
         }
         const cleanCpf = (dto.cpf || "").replace(/\D/g, "");
         if (!cleanCpf || cleanCpf.length < 11) {

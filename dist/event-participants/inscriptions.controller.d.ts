@@ -6,6 +6,19 @@ export declare class InscriptionsController {
     getActiveEvent(): Promise<{
         id: string;
         name: string;
+        slug: any;
+        city: any;
+        location: string | undefined;
+        startDate: Date | undefined;
+        endDate: Date | undefined;
+        status: import("../schemas/event.schema").EventStatus;
+        isActive: boolean;
+    } | null>;
+    getEventBySlug(slug: string): Promise<{
+        id: string;
+        name: string;
+        slug: any;
+        city: any;
         location: string | undefined;
         startDate: Date | undefined;
         endDate: Date | undefined;

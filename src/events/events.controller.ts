@@ -9,17 +9,20 @@ export class EventsController {
   @Get()
   async findAll(@Query("isActive") isActive?: string) {
     if (isActive === "true") {
-      const active = await this.eventsService.findActive();
-      return active ? [active] : [];
+      return this.eventsService.findActiveAll();
     }
     return this.eventsService.findAll();
+  }
+
+  @Get("by-slug/:slug")
+  async findBySlug(@Param("slug") slug: string) {
+    return this.eventsService.findBySlug(slug);
   }
 
   @Get("active")
   async findActive() {
     const active = await this.eventsService.findActive();
     if (!active) {
-      // json-server compatibility fallback: return null or mock structure
       return null;
     }
     return active;

@@ -29,6 +29,25 @@ let InscriptionsController = class InscriptionsController {
         return {
             id: event._id.toString(),
             name: event.name,
+            slug: event.slug,
+            city: event.city,
+            location: event.location,
+            startDate: event.startDate,
+            endDate: event.endDate,
+            status: event.status,
+            isActive: event.isActive,
+        };
+    }
+    async getEventBySlug(slug) {
+        const event = await this.participantsService.getEventBySlug(slug);
+        if (!event) {
+            return null;
+        }
+        return {
+            id: event._id.toString(),
+            name: event.name,
+            slug: event.slug,
+            city: event.city,
             location: event.location,
             startDate: event.startDate,
             endDate: event.endDate,
@@ -64,6 +83,13 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], InscriptionsController.prototype, "getActiveEvent", null);
+__decorate([
+    (0, common_1.Get)("event-by-slug/:slug"),
+    __param(0, (0, common_1.Param)("slug")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], InscriptionsController.prototype, "getEventBySlug", null);
 __decorate([
     (0, common_1.Post)("public"),
     (0, common_1.UsePipes)(new common_1.ValidationPipe({ transform: true, whitelist: true })),

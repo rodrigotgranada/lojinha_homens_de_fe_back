@@ -14,6 +14,10 @@ export class PublicInscriptionDto {
   @IsString()
   eventId?: string;
 
+  @IsOptional()
+  @IsString()
+  eventSlug?: string;
+
   @IsNotEmpty({ message: "CPF é obrigatório" })
   @IsString()
   cpf: string;

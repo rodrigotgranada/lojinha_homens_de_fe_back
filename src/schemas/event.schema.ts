@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document } from "mongoose";
+import { Document, Types } from "mongoose";
 
 export type EventStatus = "PROGRAMADO" | "ATIVO" | "ENCERRADO" | "CANCELADO";
 
@@ -10,6 +10,18 @@ export class Event extends Document {
 
   @Prop({ default: false, index: true })
   isActive: boolean;
+
+  @Prop({ type: String, unique: true, sparse: true, index: true })
+  slug?: string;
+
+  @Prop({ default: "" })
+  city?: string;
+
+  @Prop({ type: Types.ObjectId, ref: "User", required: false })
+  ownerId?: Types.ObjectId;
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: "User" }], default: [] })
+  adminIds?: Types.ObjectId[];
 
   @Prop({ type: Date })
   startDate?: Date;

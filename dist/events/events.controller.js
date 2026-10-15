@@ -23,10 +23,12 @@ let EventsController = class EventsController {
     }
     async findAll(isActive) {
         if (isActive === "true") {
-            const active = await this.eventsService.findActive();
-            return active ? [active] : [];
+            return this.eventsService.findActiveAll();
         }
         return this.eventsService.findAll();
+    }
+    async findBySlug(slug) {
+        return this.eventsService.findBySlug(slug);
     }
     async findActive() {
         const active = await this.eventsService.findActive();
@@ -50,6 +52,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], EventsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)("by-slug/:slug"),
+    __param(0, (0, common_1.Param)("slug")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], EventsController.prototype, "findBySlug", null);
 __decorate([
     (0, common_1.Get)("active"),
     __metadata("design:type", Function),

@@ -1,6 +1,10 @@
 import type { EventStatus } from "../../schemas/event.schema";
 export declare class CreateEventDto {
     name: string;
+    slug?: string;
+    city?: string;
+    ownerId?: string;
+    adminIds?: string[];
     isActive?: boolean;
     startDate?: string;
     endDate?: string;
@@ -9,6 +13,10 @@ export declare class CreateEventDto {
 }
 export declare class UpdateEventDto {
     name?: string;
+    slug?: string;
+    city?: string;
+    ownerId?: string;
+    adminIds?: string[];
     isActive?: boolean;
     startDate?: string;
     endDate?: string;

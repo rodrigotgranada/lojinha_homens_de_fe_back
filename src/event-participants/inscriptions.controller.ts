@@ -27,6 +27,27 @@ export class InscriptionsController {
     return {
       id: event._id.toString(),
       name: event.name,
+      slug: (event as any).slug,
+      city: (event as any).city,
+      location: event.location,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      status: event.status,
+      isActive: event.isActive,
+    };
+  }
+
+  @Get("event-by-slug/:slug")
+  async getEventBySlug(@Param("slug") slug: string) {
+    const event = await this.participantsService.getEventBySlug(slug);
+    if (!event) {
+      return null;
+    }
+    return {
+      id: event._id.toString(),
+      name: event.name,
+      slug: (event as any).slug,
+      city: (event as any).city,
       location: event.location,
       startDate: event.startDate,
       endDate: event.endDate,
